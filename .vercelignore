@@ -1,0 +1,11 @@
+tests/
+alembic/
+scripts/
+.venv/
+*.db
+*.sqlite
+.env
+docker-compose.yml
+Dockerfile
+requirements-dev.txt
+pytest.ini
