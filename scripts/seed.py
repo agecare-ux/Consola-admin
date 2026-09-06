@@ -19,7 +19,9 @@ from app.enums import AppRole, ComponentKey, PlanCode
 from app.security import hash_password
 
 random.seed(20260828)
-TODAY = date(2026, 8, 28)
+# Fecha de referencia del seed. Se ancla al día de ejecución para que los periodos
+# "hoy", "semana en curso" y "mes en curso" de la consola tengan datos reales.
+TODAY = date.today()
 NOW = datetime.now(timezone.utc)
 
 FEATURES = [

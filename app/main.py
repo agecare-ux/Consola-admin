@@ -1,11 +1,16 @@
 """AgeCare — API de la Consola de Administración (FastAPI + PostgreSQL)."""
+from pathlib import Path
+
 from fastapi import APIRouter, FastAPI
+from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.errors import RequestIdMiddleware, register_error_handlers
 from app.routers import (auth, content, marketplace, metrics_commercial, metrics_features,
                          metrics_roles, moderation, ops, support)
 from app.routers import system as system_router
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(
     title="AgeCare Admin API",
@@ -34,3 +39,14 @@ app.include_router(api)
 @app.get("/health", tags=["Salud"])
 async def health():
     return {"status": "ok", "service": get_settings().app_name}
+
+
+@app.get("/", include_in_schema=False)
+@app.get("/console", include_in_schema=False)
+async def console():
+    """Sirve la consola de administración desde el mismo origen que la API.
+
+    Al compartir origen con /api/v1/admin, el navegador no aplica restricciones
+    CORS y no hace falta configurar orígenes permitidos.
+    """
+    return FileResponse(STATIC_DIR / "console.html", media_type="text/html")
