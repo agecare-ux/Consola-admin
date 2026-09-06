@@ -61,6 +61,45 @@ ADOPTION = {
 ACTIVE_30D = {"family": 5310, "caregiver": 1470, "elder": 2640, "doctor": 420}
 ROLE_ORDER = ["family", "caregiver", "elder", "doctor"]
 
+# --- Coherencia de cifras -----------------------------------------------------
+# Las cifras del wireframe se tratan como una MEZCLA (proporciones), no como
+# totales absolutos. El seed las escala al cierre de la simulación diaria para que
+# los KPIs, la tabla de planes, el embudo y las tarjetas de perfil cuadren entre sí.
+ROLE_MIX_TOTAL = sum(ACTIVE_30D.values())                  # 9.840 usuarios activos
+PAID_PLANS = [(PlanCode.gold, 610, 1000, .041),            # (plan, peso, precio CLP, churn)
+              (PlanCode.platinum, 240, 10000, .022),
+              (PlanCode.provider, 90, 5000, .018)]
+PAID_MIX_TOTAL = sum(w for _, w, _, _ in PAID_PLANS)       # 940 usuarios de pago
+FREE_CHURN = .029
+
+
+def split_paying(total: int) -> list[tuple]:
+    """Reparte los usuarios de pago entre planes conservando la mezcla del wireframe.
+
+    El último plan absorbe el resto de la división para que la suma cuadre exacta.
+    """
+    rows, assigned = [], 0
+    for i, (code, weight, price, churn) in enumerate(PAID_PLANS):
+        users = total - assigned if i == len(PAID_PLANS) - 1 else round(total * weight / PAID_MIX_TOTAL)
+        assigned += users
+        rows.append((code, users, price, churn))
+    return rows
+
+
+def mrr_for(paying_total: int) -> int:
+    """MRR derivado de la mezcla real de planes, no de un ARPU aproximado."""
+    return sum(users * price for _, users, price, _ in split_paying(paying_total))
+
+
+def split_by_role(total: int) -> dict[str, int]:
+    """Reparte un total de usuarios activos entre perfiles con la mezcla del wireframe."""
+    out, assigned = {}, 0
+    for i, role in enumerate(ROLE_ORDER):
+        users = total - assigned if i == len(ROLE_ORDER) - 1 else round(total * ACTIVE_30D[role] / ROLE_MIX_TOTAL)
+        assigned += users
+        out[role] = users
+    return out
+
 
 async def seed() -> None:
     engine = get_engine()
@@ -106,7 +145,7 @@ async def seed() -> None:
             cancels = max(0, int(signups * random.uniform(.09, .16)))
             active = active + signups - cancels
             paying = min(active * .096, paying + signups * .045)
-            mrr = int(paying * 3680)  # ARPU de pago combinado aprox. CLP
+            mrr = mrr_for(int(paying))  # mismo cálculo que el snapshot de planes
             db.add(models.MetricsDailyUsers(day=d, signups=signups, cancellations=cancels,
                                             downloads=int(signups * 1.9),
                                             active_users_eod=int(active),
@@ -118,17 +157,19 @@ async def seed() -> None:
             db.add(models.MetricsHourlyUsers(
                 ts_hour=datetime.combine(TODAY, time(h * 3), tzinfo=timezone.utc), signups=s, cancellations=c))
 
-        # ---- Snapshot de planes ----
-        for code, users, price, churn in [(PlanCode.free, 8900, None, .029),
-                                          (PlanCode.gold, 610, 1000, .041),
-                                          (PlanCode.platinum, 240, 10000, .022),
-                                          (PlanCode.provider, 90, 5000, .018)]:
+        # ---- Snapshot de planes (derivado del cierre de la simulación) ----
+        active_end, paying_end = int(active), int(paying)
+        db.add(models.MetricsPlanSnapshot(as_of=TODAY, plan_code=PlanCode.free,
+                                          users=active_end - paying_end, price_clp=None,
+                                          mrr_clp=0, monthly_churn=FREE_CHURN))
+        for code, users, price, churn in split_paying(paying_end):
             db.add(models.MetricsPlanSnapshot(as_of=TODAY, plan_code=code, users=users,
                                               price_clp=price,
-                                              mrr_clp=users * price if price else 0,
+                                              mrr_clp=users * price,
                                               monthly_churn=churn))
 
-        # ---- Actividad por rol ----
+        # ---- Actividad por rol (escalada al total real de activos) ----
+        active_30d = split_by_role(active_end)
         sessions = {"family": 9.4, "caregiver": 22.6, "elder": 11.8, "doctor": 2.1}
         seconds = {"family": 250, "caregiver": 460, "elder": 545, "doctor": 200}
         retention = {"family": .78, "caregiver": .91, "elder": .64, "doctor": .55}
@@ -137,15 +178,21 @@ async def seed() -> None:
             factor = {7: .62, 30: 1.0, 90: 1.22}[window]
             for role in ROLE_ORDER:
                 db.add(models.RoleActivityWindow(days_window=window, role=role,
-                                                 active_users=int(ACTIVE_30D[role] * factor),
+                                                 active_users=int(active_30d[role] * factor),
                                                  growth_8w=growth[role],
                                                  sessions_per_week=sessions[role],
                                                  avg_session_seconds=seconds[role],
                                                  retention_30d=retention[role]))
-        weekly = {"family": [4620, 4750, 4890, 4980, 5040, 5150, 5230, 5310],
-                  "caregiver": [1350, 1370, 1390, 1410, 1430, 1450, 1460, 1470],
-                  "elder": [2210, 2290, 2340, 2400, 2460, 2520, 2580, 2640],
-                  "doctor": [350, 360, 375, 380, 395, 400, 410, 420]}
+        # La forma de la curva viene del wireframe; la magnitud, del total real.
+        weekly_shape = {"family": [4620, 4750, 4890, 4980, 5040, 5150, 5230, 5310],
+                        "caregiver": [1350, 1370, 1390, 1410, 1430, 1450, 1460, 1470],
+                        "elder": [2210, 2290, 2340, 2400, 2460, 2520, 2580, 2640],
+                        "doctor": [350, 360, 375, 380, 395, 400, 410, 420]}
+        weekly = {}
+        for role, shape in weekly_shape.items():
+            k = active_30d[role] / shape[-1]
+            weekly[role] = [int(round(v * k)) for v in shape]
+            weekly[role][-1] = active_30d[role]  # cierra en el mismo valor que la tarjeta
         monday = TODAY - timedelta(days=TODAY.weekday())
         for i in range(8):
             week = monday - timedelta(weeks=7 - i)
@@ -164,7 +211,7 @@ async def seed() -> None:
                 for role, pct in zip(ROLE_ORDER, pcts):
                     if pct is None:
                         continue
-                    users = int(ACTIVE_30D[role] * active_f * min(pct * wf, 100) / 100)
+                    users = int(active_30d[role] * active_f * min(pct * wf, 100) / 100)
                     db.add(models.FeatureUsageWindow(days_window=window, feature_key=key,
                                                      role=role, users=users))
 
