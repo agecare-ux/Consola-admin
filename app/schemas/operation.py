@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl
 
 from app.enums import (CaregiverStatus, ContentStatus, ContentType, ModerationItemType,
                        ModerationStatus, RejectReason)
@@ -81,13 +81,9 @@ class ProductCreateIn(BaseModel):
     price_clp: int | None = Field(default=None, ge=0)
     external_url: HttpUrl
     image_url: HttpUrl | None = None
-
-    @field_validator("external_url")
-    @classmethod
-    def https_only(cls, v: HttpUrl) -> HttpUrl:
-        if v.scheme != "https":
-            raise ValueError("El enlace externo debe usar https.")
-        return v
+    # El requisito de https NO se valida aquí: un ValueError de Pydantic se convierte
+    # en VALIDATION_ERROR y la spec (10.4) exige el código INSECURE_URL. La comprobación
+    # vive en el router, igual que en el PATCH de 10.5.
 
 
 class ProductPatchIn(BaseModel):

@@ -105,6 +105,8 @@ async def list_products(db: Db,
 @router.post("/products", response_model=ProductOut, status_code=201)
 async def create_product(body: ProductCreateIn, request: Request, db: Db,
                          admin: models.AdminUser = require("marketplace", write=True)):
+    if body.external_url.scheme != "https":
+        raise invalid("INSECURE_URL", "El enlace externo debe usar https.")
     p = models.Product(name=body.name, category=body.category, vendor=body.vendor,
                        price_clp=body.price_clp, external_url=str(body.external_url),
                        image_url=str(body.image_url) if body.image_url else None)
