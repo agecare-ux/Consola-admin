@@ -4,40 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgeCare · Consola de administración</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap">
 <style>
 
+  /* Tokens de la Guía de diseño AgeCare v1.0 — anexo A.
+     Superficie admin según la sección 10.3: fondo crema, panel lateral navy-800
+     con texto crema e ítem activo en teal-600, contenido en tarjetas blancas. */
   :root{
-    --bg:#f4f6f9;
-    --surface:#ffffff;
-    --ink:#1f2733;
-    --ink-soft:#5b6573;
-    --ink-faint:#8b95a3;
-    --line:#e4e8ee;
-    --line-strong:#cfd6df;
-    --brand:#3b6fd4;
-    --brand-ink:#2b55a8;
-    --brand-soft:#e7eefb;
-    --sidebar:#141b26;
-    --sidebar-ink:#aeb8c6;
-    --sidebar-active:#1f2b3d;
-    /* series (paleta categórica validada, orden fijo) */
-    --s1:#2a78d6;  /* azul   — Familiar / serie 1 */
-    --s2:#eb6834;  /* naranja— Cuidadora / serie 2 */
-    --s3:#1baf7a;  /* aqua   — Adulto mayor / serie 3 */
-    --s4:#eda100;  /* amarillo — Médico / serie 4 */
-    --neutral-mark:#c9d2de;
-    /* estado (reservados, siempre con icono + etiqueta) */
-    --ok:#0ca30c;      --ok-bg:#e9f6e9;
-    --warn:#b97800;    --warn-raw:#fab219; --warn-bg:#fdf3dc;
-    --serious:#c05a2e; --serious-bg:#fdeee6;
-    --crit:#d03b3b;    --crit-bg:#fbe7e7;
-    --radius:14px;
-    --shadow:0 1px 2px rgba(31,39,51,.05), 0 8px 24px rgba(31,39,51,.06);
+    /* neutros cálidos (4.2) — tiran a arena, nunca a azul */
+    --bg:#F7F4EE;            /* surface-bg   · crema */
+    --surface:#FFFFFF;       /* surface-card */
+    --sunken:#EFEAE1;        /* surface-sunken · arena */
+    --ink:#12283F;           /* text-primary · navy-800, el «negro» de AgeCare */
+    --ink-soft:#5B6573;      /* text-secondary */
+    --ink-faint:#7C8794;     /* text-tertiary · solo ≥12px y nunca esencial */
+    --line:#E3DED4;          /* border · decorativo */
+    --line-strong:#D5CEC1;
+    /* marca (4.1) */
+    --brand:#0E7C7B;         /* teal-600 · acción principal */
+    --brand-ink:#0A5453;     /* teal-700 · estado pulsado */
+    --brand-soft:#D9ECEB;    /* teal-100 */
+    --navy-700:#1B3A5A;
+    --navy-500:#3A5A7C;
+    --navy-100:#DCE4EE;
+    --coral:#E8765A;         /* coral-500 */
+    --coral-100:#FDEDE7;
+    --gold:#D9A300;          /* gold-500 */
+    --gold-100:#F8EBBF;
+    --sidebar:#12283F;       /* navy-800 */
+    --sidebar-ink:#C6CDD8;   /* crema apagada sobre marino */
+    --sidebar-active:#0E7C7B;/* teal-600 */
+    /* acentos de rol (4.5) — reutilizados como series de usuarios (9.2) */
+    --s1:#0E7C7B;  /* Familiar      · teal-600  */
+    --s2:#E8765A;  /* Cuidadora     · coral-500 */
+    --s3:#D9A300;  /* Adulto mayor  · gold-500  */
+    --s4:#3A5A7C;  /* Médico        · navy-500  */
+    --neutral-mark:#EFEAE1;
+    /* semánticos (4.3) — separados de la marca a propósito */
+    --ok:#247A4A;      --ok-bg:#E1F4E7;   --ok-ink:#1F6B42;
+    --warn:#E9A23B;    --warn-raw:#E9A23B; --warn-bg:#FCEFD1; --warn-ink:#8F5800;
+    --serious:#E9A23B; --serious-bg:#FCEFD1;
+    --crit:#C8362B;    --crit-bg:#FADCD8; --crit-ink:#9E2A21;
+    --info:#2F6FB3;    --info-bg:#DDE9F7;
+    /* forma (6.2) */
+    --radius:16px;     /* radius-xl · tarjetas y banners */
+    --radius-l:14px;   /* botones y campos */
+    --radius-m:12px;   /* chips y etiquetas de estado */
+    --radius-s:8px;
+    /* AgeCare casi no usa sombras (6.3): las tarjetas se separan por contraste
+       de superficie y un borde de 1px. Solo flotan los desplegables. */
+    --shadow:none;
+    --shadow-pop:0 4px 12px rgba(18,40,63,.10);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:"Nunito Sans","Segoe UI",Roboto,-apple-system,sans-serif;
     background:var(--bg);color:var(--ink);font-size:14px;
     display:flex;min-height:100vh;
   }
@@ -52,7 +76,7 @@
     position:fixed;top:0;left:0;bottom:0;z-index:50;
   }
   .logo{display:flex;align-items:center;gap:10px;padding:18px 18px 14px}
-  .logo-mark{width:34px;height:34px;border-radius:10px;background:var(--brand);color:#fff;
+  .logo-mark{width:34px;height:34px;border-radius:var(--radius-m);background:var(--brand);color:#fff;
     display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
   .logo-name{color:#fff;font-weight:700;font-size:15px;line-height:1.1}
   .logo-sub{font-size:10.5px;color:var(--sidebar-ink);margin-top:2px}
@@ -157,7 +181,7 @@
   .dlabel{font-size:10.5px;font-weight:700;fill:var(--ink-soft)}
 
   /* tooltip */
-  #tt{position:fixed;z-index:99;pointer-events:none;background:#1f2733;color:#fff;
+  #tt{position:fixed;z-index:99;pointer-events:none;background:#12283F;color:#fff;
     border-radius:9px;padding:9px 12px;font-size:11.5px;box-shadow:0 8px 24px rgba(0,0,0,.25);
     opacity:0;transition:opacity .08s;max-width:260px}
   #tt .tt-h{font-size:10.5px;color:#aeb8c6;margin-bottom:5px;font-weight:600}
@@ -207,12 +231,12 @@
   .field input{width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);
     border:1px solid var(--line-strong);border-radius:9px;padding:9px 11px;background:#fff}
   .field input:focus{outline:2px solid var(--brand);outline-offset:-1px;border-color:var(--brand)}
-  .btn{width:100%;font-family:inherit;font-size:13.5px;font-weight:600;border:none;
-    background:var(--brand);color:#fff;border-radius:9px;padding:11px;cursor:pointer}
+  .btn{width:100%;font-family:inherit;font-size:16px;font-weight:700;border:none;
+    background:var(--brand);color:#fff;border-radius:var(--radius-l);padding:12px;cursor:pointer}
   .btn:hover{background:var(--brand-ink)}
   .btn[disabled]{opacity:.6;cursor:progress}
-  .gate-err{display:none;font-size:12px;color:var(--crit);background:var(--crit-bg);
-    border-radius:9px;padding:10px 12px;margin-bottom:13px;line-height:1.45}
+  .gate-err{display:none;font-size:12px;color:var(--crit-ink);background:var(--crit-bg);
+    border-radius:var(--radius-m);padding:10px 12px;margin-bottom:13px;line-height:1.45}
   .gate-err.on{display:block}
   .gate-hint{font-size:11px;color:var(--ink-faint);margin-top:16px;line-height:1.6;
     border-top:1px solid var(--line);padding-top:13px}
@@ -223,9 +247,9 @@
   .loading::after{content:"Cargando…";position:absolute;inset:0;display:flex;
     align-items:center;justify-content:center;font-size:12px;color:var(--ink-faint);
     background:var(--surface);border-radius:var(--radius);z-index:5}
-  .view-error{background:var(--crit-bg);border:1px solid #f2cfcf;border-radius:var(--radius);
+  .view-error{background:var(--crit-bg);border:1px solid #F0C4BD;border-radius:var(--radius);
     padding:15px 17px;margin-bottom:16px;font-size:12.5px;color:var(--ink)}
-  .view-error b{color:var(--crit)}
+  .view-error b{color:var(--crit-ink)}
   .view-error .req{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--ink-faint)}
 
   /* Frescura del dato y sesión */
@@ -336,8 +360,8 @@
           <div class="card-sub" id="chart-alt-sub">Nuevos usuarios registrados frente a cuentas dadas de baja</div>
         </div>
         <div class="legend">
-          <span class="item"><span class="linekey" style="border-color:var(--s1)"></span>Altas</span>
-          <span class="item"><span class="linekey" style="border-color:var(--s2)"></span>Bajas</span>
+          <span class="item"><span class="linekey" style="border-color:var(--brand)"></span>Altas</span>
+          <span class="item"><span class="linekey" style="border-color:var(--s4)"></span>Bajas</span>
         </div>
       </div>
       <div class="chart-wrap" id="chart-altas"></div>
@@ -535,8 +559,14 @@ const API = '/api/v1/admin';
 const fmt = n => Number(n).toLocaleString('es-CL');
 const pct = (v, d = 1) => (v * 100).toLocaleString('es-CL', {maximumFractionDigits: d}) + '%';
 const dec = (v, d = 1) => Number(v).toLocaleString('es-CL', {maximumFractionDigits: d});
-const C = {s1:'#2a78d6', s2:'#eb6834', s3:'#1baf7a', s4:'#eda100', s5:'#e87ba4', neutral:'#c9d2de',
-           inkSoft:'#5b6573', inkFaint:'#8b95a3'};
+/* Tokens de la Guía de diseño v1.0. Las series de usuarios reutilizan los acentos
+   de rol (4.5) y las métricas de negocio usan navy/teal (9.2). */
+const C = {
+  teal:'#0E7C7B', tealDark:'#0A5453', tealMid:'#1B9594', teal100:'#D9ECEB', teal50:'#EEF6F5',
+  coral:'#E8765A', gold:'#D9A300',
+  navy:'#12283F', navy500:'#3A5A7C', navy100:'#DCE4EE',
+  sunken:'#EFEAE1', inkSoft:'#5B6573', inkFaint:'#7C8794',
+};
 
 /* ================================================================
    CLIENTE DE API — autenticación, renovación de token y errores
@@ -793,13 +823,13 @@ function hBars(el, items, opts = {}) {
     lab.textContent = it.label;
     const bar = mk('path', {
       d: `M${m.l} ${y} h${(w - 4).toFixed(1)} a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-${(w - 4).toFixed(1)} Z`,
-      fill: it.color || C.s1,
+      fill: it.color || C.teal,
     });
     const val = mk('text', {x: m.l + w + 8, y: y + 13, class: 'dlabel'});
     val.textContent = it.display !== undefined ? it.display : fmt(it.value);
     const hit = mk('rect', {x: 0, y: m.t + i * rowH, width: W, height: rowH, fill: 'transparent'});
     hit.addEventListener('pointermove', e => ttShow(e.clientX, e.clientY, it.label,
-      [{color: it.color || C.s1, label: opts.metric || 'Valor', value: it.display !== undefined ? it.display : fmt(it.value)}].concat(it.extra || [])));
+      [{color: it.color || C.teal, label: opts.metric || 'Valor', value: it.display !== undefined ? it.display : fmt(it.value)}].concat(it.extra || [])));
     hit.addEventListener('pointerleave', ttHide);
     bar.addEventListener('pointerenter', () => bar.setAttribute('opacity', .85));
     bar.addEventListener('pointerleave', () => bar.setAttribute('opacity', 1));
@@ -830,7 +860,7 @@ function stackBar(el, segments, opts = {}) {
       t.setAttribute('x', x + w / 2); t.setAttribute('y', barH / 2 + 4);
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('font-size', 11); t.setAttribute('font-weight', 700);
-      t.setAttribute('fill', s.lightText ? '#ffffff' : '#1f2733');
+      t.setAttribute('fill', s.lightText ? '#FFFFFF' : '#12283F');
       t.textContent = p.toLocaleString('es-CL', {maximumFractionDigits: 1}) + '%';
       svg.appendChild(t);
     }
@@ -860,12 +890,12 @@ function stackBar(el, segments, opts = {}) {
 ================================================================ */
 const ROLE_LABEL   = {family: 'Familiares', caregiver: 'Cuidadoras', elder: 'Adultos mayores', doctor: 'Médicos'};
 const ROLE_SINGLE  = {family: 'Familiar', caregiver: 'Cuidadora', elder: 'Adulto mayor', doctor: 'Médico'};
-const ROLE_COLOR   = {family: C.s1, caregiver: C.s2, elder: C.s3, doctor: C.s4};
+const ROLE_COLOR   = {family: C.teal, caregiver: C.coral, elder: C.gold, doctor: C.navy500};
 const ROLE_NOTE    = {family: 'usuario principal · observa y decide', caregiver: 'operan el día a día',
                       elder: 'vista accesible + Director Musical', doctor: 'prescripción · rol acotado v1'};
-const PLAN_COLOR   = {free: C.neutral, gold: C.s4, platinum: C.s1, provider: C.s3};
-const PLAN_LIGHT   = {platinum: true};
-const CAT_COLOR    = [C.s1, C.s2, C.s3, C.s4, C.s5, C.neutral];
+const PLAN_COLOR   = {free: C.sunken, gold: C.gold, platinum: C.navy500, provider: C.teal};
+const PLAN_LIGHT   = {platinum: true, provider: true};  // el dorado lleva texto marino (4.3)
+const CAT_COLOR    = ['#0A5453', '#0E7C7B', '#1B9594', '#5CB8B4', '#A2D3CF', '#D9ECEB'];
 const COMP_SUB     = {api_core: 'FastAPI · Container Apps', database: 'PostgreSQL Flexible',
                       auth: 'JWT · gestión de sesiones', push: 'Notification Hubs',
                       alert_engine: 'Reglas + jobs programados', wearable_ingest: 'API batch de vitals',
@@ -1008,8 +1038,8 @@ async function loadComercialPeriod(p) {
     );
     $('#chart-alt-sub').textContent = 'Nuevos usuarios frente a cuentas dadas de baja · ' + p.n.toLowerCase();
     lineChart($('#chart-altas'), r.buckets.map(b => b.label), [
-      {name: 'Altas', color: C.s1, values: r.signups},
-      {name: 'Bajas', color: C.s2, values: r.cancellations},
+      {name: 'Altas', color: C.teal, values: r.signups},
+      {name: 'Bajas', color: C.navy500, values: r.cancellations},
     ]);
     setFreshness(s.computed_at);
   } catch (e) {
@@ -1027,7 +1057,7 @@ async function loadComercialStatic() {
     ]);
     $('#planes-sub').textContent = 'Usuarios activos por plan · ' + plans.as_of;
     stackBar($('#chart-planes'), plans.plans.map(p => ({
-      label: p.name, value: p.users, color: PLAN_COLOR[p.plan_code] || C.neutral,
+      label: p.name, value: p.users, color: PLAN_COLOR[p.plan_code] || C.sunken,
       lightText: !!PLAN_LIGHT[p.plan_code],
     })), {metric: 'Usuarios'});
 
@@ -1037,7 +1067,7 @@ async function loadComercialStatic() {
       const tr = document.createElement('tr');
       const c0 = document.createElement('td');
       const sw = document.createElement('span'); sw.className = 'swatch';
-      sw.style.background = PLAN_COLOR[p.plan_code] || C.neutral;
+      sw.style.background = PLAN_COLOR[p.plan_code] || C.sunken;
       c0.append(sw, document.createTextNode(p.name));
       tr.append(c0, td(fmt(p.users), 'num'), td(pct(p.share), 'num'),
                 td(p.price_clp === null ? '—' : '$' + fmt(p.price_clp), 'num'),
@@ -1051,10 +1081,10 @@ async function loadComercialStatic() {
                td(fmt(plans.totals.mrr_clp), 'num'), td(pct(plans.totals.monthly_churn), 'num'));
     tb.appendChild(tot);
 
-    const RAMP4 = ['#86b6ef', '#3987e5', '#1c5cab', '#0d366b'];
+    const RAMP4 = ['#A2D3CF', '#5CB8B4', '#0E7C7B', '#0A5453'];
     $('#funnel-sub').textContent = 'Del total acumulado al ' + funnel.as_of;
     hBars($('#chart-funnel'), funnel.stages.map((s, i) => ({
-      label: s.name, value: s.users, color: RAMP4[i] || C.s1,
+      label: s.name, value: s.users, color: RAMP4[i] || C.teal,
       display: i === 0 ? fmt(s.users) : `${fmt(s.users)} · ${pct(s.rate_vs_first)}`,
       extra: i === 0 ? [] : [{label: 'Sobre la primera etapa', value: pct(s.rate_vs_first)}],
     })), {metric: 'Usuarios', labelW: 150});
@@ -1232,7 +1262,7 @@ async function loadUsuarios() {
     $('#cat-sub').textContent = `Últimos ${cats.days} días · ${fmt(cats.total)} tickets`;
     stackBar($('#chart-tickets'), cats.categories.map((c, i) => ({
       label: c.name, value: c.count, color: CAT_COLOR[i % CAT_COLOR.length],
-      lightText: i < 2,
+      lightText: i < 3,   // los tres primeros pasos de la escala son oscuros
     })), {metric: 'Tickets'});
 
     const tt2 = $('#tabla-tickets tbody');
@@ -1253,10 +1283,12 @@ async function loadUsuarios() {
 /* ================================================================
    4 · USO POR FUNCIONALIDAD
 ================================================================ */
-const RAMP = [[15, '#cde2fb'], [30, '#9ec5f4'], [45, '#6da7ec'], [60, '#3987e5'],
-              [75, '#256abf'], [90, '#1c5cab'], [101, '#0d366b']];
+/* Escala secuencial de 6 pasos, teal-50 → teal-700 (guía 9.2). El color de texto
+   se elige por contraste medido: marino hasta 5CB8B4, blanco a partir de 0E7C7B. */
+const RAMP = [[17, '#EEF6F5'], [34, '#D9ECEB'], [50, '#A2D3CF'],
+              [67, '#5CB8B4'], [84, '#0E7C7B'], [101, '#0A5453']];
 const heatColor = v => RAMP.find(r => v < r[0])[1];
-const heatInk = v => v >= 45 ? '#ffffff' : '#1f2733';
+const heatInk = v => v >= 67 ? '#FFFFFF' : '#12283F';
 
 async function loadFuncional() {
   clearError('err-funcional');
