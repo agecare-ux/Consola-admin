@@ -1,0 +1,38 @@
+# ---- Secretos: NUNCA subir al repositorio ----
+.env
+.env.*
+!.env.example
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+build/
+dist/
+
+# ---- Entornos virtuales ----
+.venv/
+venv/
+env/
+
+# ---- Tests y herramientas ----
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Bases de datos locales ----
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Vercel ----
+.vercel
+
+# ---- Editores y sistema operativo ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
