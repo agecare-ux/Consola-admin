@@ -82,8 +82,19 @@ async def main():
         me = (await c.get(f"{P}/auth/me", headers=H)).json()
         check("3.7", "desactivarse a sí mismo -> CANNOT_DISABLE_SELF", 409, "CANNOT_DISABLE_SELF",
               await c.patch(f"{P}/users/{me['id']}", headers=H, json={"is_active": False}))
+
+        # LAST_ADMIN solo salta cuando de verdad es el último admin activo. El seed
+        # incluye una segunda cuenta admin (la del segundo factor), así que hay que
+        # desactivarla primero o el degradado tendría éxito y dejaría la auditoría
+        # sin permisos para el resto de comprobaciones.
+        otros = [u for u in (await c.get(f"{P}/users?role=admin", headers=H)).json()["items"]
+                 if u["id"] != me["id"] and u["is_active"]]
+        for u in otros:
+            await c.patch(f"{P}/users/{u['id']}", headers=H, json={"is_active": False})
         check("3.7", "dejar sin admin activo -> LAST_ADMIN", 409, "LAST_ADMIN",
               await c.patch(f"{P}/users/{me['id']}", headers=H, json={"role": "support"}))
+        for u in otros:
+            await c.patch(f"{P}/users/{u['id']}", headers=H, json={"is_active": True})
 
         # ---------- 4.1 / 4.2 periodo ----------
         check("4.1", "periodo inválido -> INVALID_PERIOD o 422", 422, None,

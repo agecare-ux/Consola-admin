@@ -6,7 +6,8 @@ P = "/api/v1/admin"
 CUENTAS = {"admin": ("admin@wellq.co.uk", "Admin123!"),
            "analyst": ("analista@wellq.co.uk", "Analista123!"),
            "support": ("soporte@wellq.co.uk", "Soporte123!"),
-           "editor": ("editora@wellq.co.uk", "Editora123!")}
+           "editor": ("editora@wellq.co.uk", "Editora123!"),
+           "moderator": ("moderador@wellq.co.uk", "Moderador123!")}
 
 # (método, ruta, roles autorizados según la spec, sección del documento)
 CASOS = [
@@ -25,6 +26,8 @@ CASOS = [
     ("GET",  "/marketplace/caregivers",                  {"admin", "editor", "moderator"},"10.1"),
     ("POST", "/marketplace/products",                    {"admin", "editor"},             "10.4"),
     ("GET",  "/moderation/queue",                        {"admin", "moderator"},          "11.1"),
+    ("POST", "/moderation/queue/00000000-0000-0000-0000-000000000000/approve",
+                                                         {"admin", "moderator"},          "11.2"),
     ("GET",  "/settings",                                {"admin"},                       "12.1"),
     ("GET",  "/legal/documents",                         {"admin"},                       "13.1"),
     ("GET",  "/audit-log",                               {"admin"},                       "14.1"),
@@ -62,6 +65,6 @@ async def main():
                 print(f"{'':<14} └─ {d}")
         print(f"\nDesviaciones: {fallos}")
         print("Leyenda: '+' el rol puede acceder, '-' recibe 403. 'ok' coincide con la spec.")
-        print("Nota: no hay cuenta con rol 'moderator' en el seed, así que esa columna no se prueba.")
+        print("Los cinco roles de la matriz de permisos (2.3) quedan cubiertos.")
 
 asyncio.run(main())

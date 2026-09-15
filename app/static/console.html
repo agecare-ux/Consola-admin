@@ -260,6 +260,69 @@
   .nav-item[hidden]{display:none}
   .skel{color:var(--ink-faint)}
 
+  /* ============ MÓDULO DE TICKETS ============ */
+  .tk-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .tk-bar select,.tk-bar input{font-family:inherit;font-size:12.5px;color:var(--ink);
+    border:1px solid var(--line-strong);border-radius:var(--radius-m);padding:7px 10px;background:#fff}
+  .tk-bar input[type=search]{min-width:230px}
+  .tk-bar select:focus,.tk-bar input:focus{outline:2px solid var(--brand);outline-offset:-1px}
+  .tk-spacer{flex:1}
+  .btn-sm{font-family:inherit;font-size:12.5px;font-weight:700;border:none;cursor:pointer;
+    background:var(--brand);color:#fff;border-radius:var(--radius-m);padding:8px 14px}
+  .btn-sm:hover{background:var(--brand-ink)}
+  .btn-sm[disabled]{opacity:.55;cursor:not-allowed}
+  .btn-ghost{background:none;color:var(--ink-soft);border:1px solid var(--line-strong)}
+  .btn-ghost:hover{background:var(--sunken);color:var(--ink)}
+  table.data tr.clickable{cursor:pointer}
+  table.data tr.clickable:hover td{background:var(--brand-soft)}
+  .pager{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12px;color:var(--ink-soft)}
+  .pager .btn-sm{padding:6px 12px}
+  /* detalle */
+  .tk-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:4px}
+  .tk-num{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--ink-faint);padding-top:5px}
+  .tk-subject{font-size:20px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
+  .tk-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px;margin:16px 0 4px;
+    padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .tk-meta dt{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint)}
+  .tk-meta dd{font-size:13px;margin-top:3px}
+  .tk-desc{font-size:13.5px;line-height:1.65;color:var(--ink);white-space:pre-wrap;margin-top:14px}
+  /* conversación */
+  .thread{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+  .msg{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;max-width:86%}
+  .msg.user{background:var(--sunken);align-self:flex-start}
+  .msg.admin{background:var(--brand-soft);border-color:#C4E0DE;align-self:flex-end}
+  .msg.internal{background:var(--warn-bg);border-color:#F0DCAF;align-self:flex-end}
+  .msg-h{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--ink-soft);margin-bottom:6px}
+  .msg-h b{font-size:12px;color:var(--ink)}
+  .msg-b{font-size:13.5px;line-height:1.6;white-space:pre-wrap}
+  .composer{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .composer textarea{width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);line-height:1.6;
+    border:1px solid var(--line-strong);border-radius:var(--radius-l);padding:11px 13px;
+    background:#fff;min-height:92px;resize:vertical}
+  .composer textarea:focus{outline:2px solid var(--brand);outline-offset:-1px}
+  .composer-row{display:flex;align-items:center;gap:14px;margin-top:10px}
+  .check{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer}
+  /* modal de alta */
+  .modal{position:fixed;inset:0;z-index:150;background:rgba(18,40,63,.45);
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal[hidden]{display:none}
+  .modal-card{background:var(--surface);border-radius:var(--radius);padding:24px;
+    width:100%;max-width:560px;max-height:90vh;overflow:auto;box-shadow:var(--shadow-pop)}
+  .modal-card h3{font-size:17px;font-weight:800;margin-bottom:4px}
+  .modal-card .sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:18px}
+  .modal-card label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin:12px 0 5px}
+  .modal-card input,.modal-card select,.modal-card textarea{width:100%;font-family:inherit;font-size:13.5px;
+    color:var(--ink);border:1px solid var(--line-strong);border-radius:var(--radius-l);
+    padding:10px 12px;background:#fff}
+  .modal-card textarea{min-height:110px;resize:vertical;line-height:1.6}
+  .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+  .inline-msg{font-size:12.5px;padding:9px 12px;border-radius:var(--radius-m);margin-top:12px;display:none}
+  .inline-msg.on{display:block}
+  .inline-msg.err{background:var(--crit-bg);color:var(--crit-ink)}
+  .inline-msg.ok{background:var(--ok-bg);color:var(--ok-ink)}
+  .empty{text-align:center;padding:36px 20px;color:var(--ink-faint);font-size:13px}
+
 </style>
 </head>
 <body>
@@ -311,7 +374,7 @@
     <button class="nav-item" data-view="usuarios" data-perm="support"><span class="ico">👥</span>Usuarios y soporte</button>
     <button class="nav-item" data-view="funcional" data-perm="metrics"><span class="ico">🧩</span>Uso por funcionalidad</button>
     <div class="nav-group">Operación</div>
-    <button class="nav-item" data-view="ph-tickets" data-perm="support"><span class="ico">🎫</span>Tickets de soporte<span class="soon">v1</span></button>
+    <button class="nav-item" data-view="tickets" data-perm="support"><span class="ico">🎫</span>Tickets de soporte</button>
     <button class="nav-item" data-view="ph-contenido" data-perm="content"><span class="ico">📰</span>Curación de contenido<span class="soon">v1</span></button>
     <button class="nav-item" data-view="ph-catalogos" data-perm="marketplace"><span class="ico">🛍️</span>Catálogos marketplace<span class="soon">v1</span></button>
     <button class="nav-item" data-view="ph-moderacion" data-perm="moderation"><span class="ico">🛡️</span>Moderación<span class="soon">v1</span></button>
@@ -536,6 +599,96 @@
   </div>
 </section>
 
+
+<!-- ============ TICKETS DE SOPORTE ============ -->
+<section class="view" id="view-tickets">
+  <div id="err-tickets"></div>
+
+  <!-- lista -->
+  <div id="tk-list">
+    <div class="tk-bar">
+      <input type="search" id="tk-q" placeholder="Buscar por asunto, correo o #número">
+      <select id="tk-status"></select>
+      <select id="tk-priority"></select>
+      <select id="tk-category"></select>
+      <select id="tk-role"></select>
+      <select id="tk-order">
+        <option value="-created_at">Más nuevos primero</option>
+        <option value="created_at">Más antiguos primero</option>
+        <option value="-updated_at">Actualizados hace poco</option>
+        <option value="-priority">Prioridad más alta</option>
+      </select>
+      <label class="check" id="tk-mine-wrap"><input type="checkbox" id="tk-mine"> Solo los míos</label>
+      <div class="tk-spacer"></div>
+      <button class="btn-sm" id="tk-new">Nuevo ticket</button>
+    </div>
+
+    <div class="card">
+      <table class="data" id="tk-table">
+        <thead><tr>
+          <th>Id</th><th>Asunto</th><th>Perfil</th><th>Categoría</th>
+          <th>Prioridad</th><th>Estado</th><th>Asignado</th><th class="num">Creado</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="tk-empty" class="empty" hidden>Ningún ticket coincide con los filtros.</div>
+      <div class="pager">
+        <button class="btn-sm btn-ghost" id="tk-prev">Anterior</button>
+        <button class="btn-sm btn-ghost" id="tk-next">Siguiente</button>
+        <span id="tk-range"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- detalle -->
+  <div id="tk-detail" hidden>
+    <div class="tk-bar">
+      <button class="btn-sm btn-ghost" id="tk-back">← Volver a la cola</button>
+    </div>
+    <div class="card">
+      <div class="tk-head">
+        <span class="tk-num" id="d-num"></span>
+        <div style="flex:1">
+          <div class="tk-subject" id="d-subject"></div>
+          <div style="display:flex;gap:7px;margin-top:8px" id="d-chips"></div>
+        </div>
+      </div>
+      <dl class="tk-meta" id="d-meta"></dl>
+      <div class="tk-desc" id="d-desc"></div>
+    </div>
+
+    <div class="card" id="d-actions-card">
+      <div class="card-head"><div>
+        <div class="card-title">Gestión</div>
+        <div class="card-sub" id="d-actions-sub">Estado, prioridad y asignación</div>
+      </div></div>
+      <div class="tk-bar" style="margin:0">
+        <select id="d-status"></select>
+        <select id="d-priority"></select>
+        <button class="btn-sm btn-ghost" id="d-assign">Asignármelo</button>
+      </div>
+      <div class="inline-msg" id="d-msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div>
+        <div class="card-title">Conversación</div>
+        <div class="card-sub" id="d-thread-sub"></div>
+      </div></div>
+      <div class="thread" id="d-thread"></div>
+      <div class="composer" id="d-composer">
+        <textarea id="d-body" placeholder="Escribe tu respuesta al usuario…"></textarea>
+        <div class="composer-row">
+          <label class="check"><input type="checkbox" id="d-internal"> Nota interna (no la ve el usuario)</label>
+          <div class="tk-spacer"></div>
+          <button class="btn-sm" id="d-send">Enviar</button>
+        </div>
+        <div class="inline-msg" id="d-send-msg"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ PLACEHOLDER ============ -->
 <section class="view" id="view-placeholder">
   <div class="placeholder-box">
@@ -548,6 +701,29 @@
   </div>
 </section>
   </main>
+</div>
+
+<!-- ============ ALTA DE TICKET ============ -->
+<div class="modal" id="nuevo" hidden>
+  <div class="modal-card">
+    <h3>Nuevo ticket</h3>
+    <div class="sub">Para casos que llegan por teléfono o correo y no se abrieron desde la app.</div>
+    <label for="n-email">Correo del usuario</label>
+    <input id="n-email" type="email" placeholder="usuario@ejemplo.cl">
+    <label for="n-subject">Asunto</label>
+    <input id="n-subject" type="text" placeholder="Resumen breve del problema">
+    <div class="modal-row">
+      <div><label for="n-category">Categoría</label><select id="n-category"></select></div>
+      <div><label for="n-priority">Prioridad</label><select id="n-priority"></select></div>
+    </div>
+    <label for="n-desc">Descripción</label>
+    <textarea id="n-desc" placeholder="Qué ocurre, desde cuándo y qué se ha intentado."></textarea>
+    <div class="inline-msg" id="n-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-ghost" id="n-cancel">Cancelar</button>
+      <button class="btn-sm" id="n-create">Crear ticket</button>
+    </div>
+  </div>
 </div>
 <div id="tt" role="status" aria-live="polite"></div>
 
@@ -738,9 +914,45 @@ function ttHide() { tt.style.opacity = 0; }
 /* ================================================================
    GRÁFICAS  (idénticas al wireframe: solo cambia de dónde vienen los datos)
 ================================================================ */
+/* Con un único tramo una línea no se ve: queda un punto suelto que parece un error.
+   Pasa al principio de mes, porque "mes en curso" se agrupa por semanas (spec 4.2).
+   En ese caso se dibujan columnas, que es lo que el dato realmente es. */
+function singleBucket(el, etiqueta, series) {
+  el.className = 'chart-wrap';
+  const W = 560, H = 240, m = {t: 26, b: 42};
+  const ih = H - m.t - m.b;
+  const max = Math.max(...series.map(s => s.values[0]), 1);
+  const ancho = 84, hueco = 46;
+  const total = series.length * ancho + (series.length - 1) * hueco;
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const mk = (tag, at, txt) => {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const k in at) n.setAttribute(k, at[k]);
+    if (txt !== undefined) n.textContent = txt;
+    svg.appendChild(n); return n;
+  };
+  mk('line', {x1: 40, x2: W - 40, y1: m.t + ih, y2: m.t + ih, class: 'baseline'});
+  series.forEach((s, i) => {
+    const v = s.values[0];
+    const h = Math.max(3, v / max * ih);
+    const x = (W - total) / 2 + i * (ancho + hueco);
+    const y = m.t + ih - h;
+    const r = mk('rect', {x, y, width: ancho, height: h, rx: 8, fill: s.color});
+    mk('text', {x: x + ancho / 2, y: y - 9, 'text-anchor': 'middle', class: 'dlabel'}, fmt(v));
+    mk('text', {x: x + ancho / 2, y: m.t + ih + 20, 'text-anchor': 'middle', class: 'axis-t'}, s.name);
+    r.addEventListener('pointermove', e => ttShow(e.clientX, e.clientY, etiqueta,
+      [{color: s.color, label: s.name, value: fmt(v)}]));
+    r.addEventListener('pointerleave', ttHide);
+  });
+  mk('text', {x: W / 2, y: H - 8, 'text-anchor': 'middle', class: 'axis-t'}, etiqueta);
+  el.appendChild(svg);
+}
+
 function lineChart(el, labels, series, opts = {}) {
   el.textContent = '';
   if (!labels.length) { el.textContent = 'Sin datos en el periodo.'; el.className = 'chart-wrap skel'; return; }
+  if (labels.length === 1) return singleBucket(el, labels[0], series);
   el.className = 'chart-wrap';
   const W = 560, H = 240;
   const mR = opts.endNames ? 118 : 46;
@@ -939,13 +1151,15 @@ const VIEW_META = {
   operativo: ['Estado operativo', 'Analítica · Salud de la plataforma y procesos críticos'],
   usuarios:  ['Usuarios y soporte', 'Analítica · Estadísticas por perfil y tickets de soporte'],
   funcional: ['Uso por funcionalidad', 'Analítica · Adopción de funciones por rol'],
+  tickets:   ['Tickets de soporte', 'Operación · Cola de soporte y conversación con el usuario'],
 };
 const PH_META = {
-  'ph-tickets': ['🎫', 'Tickets de soporte'], 'ph-contenido': ['📰', 'Curación de contenido'],
+  'ph-contenido': ['📰', 'Curación de contenido'],
   'ph-catalogos': ['🛍️', 'Catálogos del marketplace'], 'ph-moderacion': ['🛡️', 'Moderación'],
   'ph-config': ['⚙️', 'Configuración del sistema'], 'ph-legales': ['📜', 'Legales y privacidad'],
 };
-const LOADERS = {comercial: null, operativo: loadOperativo, usuarios: loadUsuarios, funcional: loadFuncional};
+const LOADERS = {comercial: null, operativo: loadOperativo, usuarios: loadUsuarios,
+                 funcional: loadFuncional, tickets: loadTickets};
 const loaded = {};
 
 document.querySelectorAll('.nav-item').forEach(btn => {
@@ -1396,6 +1610,294 @@ async function loadFuncional() {
   }
 }
 
+
+/* ================================================================
+   MÓDULO DE TICKETS (secciones 8.1 a 8.6)
+================================================================ */
+const CATEGORIA = {account_access: 'Acceso y cuenta', wearable_sync: 'Wearable y sincronización',
+                   alerts_push: 'Alertas y push', billing_plans: 'Pagos y planes',
+                   medications: 'Medicamentos', other: 'Otros'};
+const PRIORIDAD = {low: 'Baja', medium: 'Media', high: 'Alta', critical: 'Crítica'};
+const ESTADO    = {open: 'Abierto', in_progress: 'En curso', waiting_user: 'Esperando usuario',
+                   resolved: 'Resuelto', closed: 'Cerrado'};
+const CANAL     = {app: 'App', email: 'Correo', phone: 'Teléfono', console: 'Consola'};
+/* Máquina de estados de la sección 8.4. Se replica aquí para ofrecer solo los
+   destinos válidos; el backend la vuelve a comprobar y responde INVALID_TRANSITION. */
+const TRANSICIONES = {open: ['in_progress', 'resolved'], in_progress: ['waiting_user', 'resolved'],
+                      waiting_user: ['in_progress', 'resolved'],
+                      resolved: ['in_progress', 'closed'], closed: []};
+
+let yo = null;                // administrador de la sesión, de /auth/me
+let tkPag = {page: 1, pageSize: 25, total: 0};
+let tkActual = null;          // ticket abierto en el detalle
+let puedeEscribir = false;    // analista es solo lectura (matriz 2.3)
+
+function opciones(sel, mapa, vacio) {
+  sel.textContent = '';
+  if (vacio) sel.appendChild(new Option(vacio, ''));
+  for (const [v, t] of Object.entries(mapa)) sel.appendChild(new Option(t, v));
+}
+const fechaCorta = iso => new Date(iso).toLocaleDateString('es-CL', {day: 'numeric', month: 'short'});
+const fechaHora = iso => new Date(iso).toLocaleString('es-CL',
+  {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+
+function aviso(el, texto, tipo) {
+  el.textContent = texto;
+  el.className = 'inline-msg on ' + tipo;
+  if (tipo === 'ok') setTimeout(() => el.classList.remove('on'), 3500);
+}
+
+/* ---------- lista ---------- */
+function filtrosTickets() {
+  const p = new URLSearchParams();
+  const q = $('#tk-q').value.trim();
+  if (q) p.set('q', q);
+  for (const [id, campo] of [['tk-status', 'status'], ['tk-priority', 'priority'],
+                             ['tk-category', 'category'], ['tk-role', 'role']]) {
+    if ($('#' + id).value) p.set(campo, $('#' + id).value);
+  }
+  if ($('#tk-mine').checked && yo) p.set('assigned_to', yo.id);
+  p.set('order', $('#tk-order').value);
+  p.set('page', tkPag.page);
+  p.set('page_size', tkPag.pageSize);
+  return p.toString();
+}
+
+async function loadTickets() {
+  clearError('err-tickets');
+  $('#tk-list').hidden = false;
+  $('#tk-detail').hidden = true;
+  const tb = $('#tk-table tbody');
+  try {
+    const d = await api('/support/tickets?' + filtrosTickets());
+    tkPag.total = d.total;
+    tb.textContent = '';
+    d.items.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', () => abrirTicket(t.id));
+      const num = td('#' + t.number); num.style.fontVariantNumeric = 'tabular-nums';
+      tr.append(num, td(t.subject),
+                td(t.requester.role ? ROLE_SINGLE[t.requester.role] : '—'),
+                td(CATEGORIA[t.category] || t.category),
+                tdNode(chip(TK_PRIORITY, t.priority)), tdNode(chip(TK_STATUS, t.status)),
+                td(t.assigned_to ? t.assigned_to.name : '—'),
+                td(fechaCorta(t.created_at), 'num'));
+      tb.appendChild(tr);
+    });
+    $('#tk-empty').hidden = d.items.length > 0;
+    const desde = d.total ? (d.page - 1) * d.page_size + 1 : 0;
+    $('#tk-range').textContent = `${desde}–${Math.min(d.page * d.page_size, d.total)} de ${fmt(d.total)}`;
+    $('#tk-prev').disabled = d.page <= 1;
+    $('#tk-next').disabled = d.page * d.page_size >= d.total;
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-tickets', e);
+  }
+}
+
+/* ---------- detalle ---------- */
+async function abrirTicket(id) {
+  clearError('err-tickets');
+  try {
+    const [t, hilo] = await Promise.all([
+      api(`/support/tickets/${id}`),
+      api(`/support/tickets/${id}/replies?page_size=100`),
+    ]);
+    tkActual = t;
+    $('#tk-list').hidden = true;
+    $('#tk-detail').hidden = false;
+    window.scrollTo({top: 0});
+
+    $('#d-num').textContent = '#' + t.number;
+    $('#d-subject').textContent = t.subject;
+    const chips = $('#d-chips');
+    chips.textContent = '';
+    chips.append(chip(TK_STATUS, t.status), chip(TK_PRIORITY, t.priority));
+    const cat = document.createElement('span');
+    cat.className = 'chip neutral';
+    cat.textContent = CATEGORIA[t.category] || t.category;
+    chips.appendChild(cat);
+
+    const ctx = t.requester_context || {};
+    const pacientes = (ctx.patients || []).map(p => p.display_name).join(', ');
+    const disp = (ctx.devices || []).map(d => `${d.platform} · v${d.app_version}`).join(', ');
+    const meta = $('#d-meta');
+    meta.textContent = '';
+    [['Solicitante', t.requester.name], ['Correo', t.requester.email],
+     ['Perfil', t.requester.role ? ROLE_SINGLE[t.requester.role] : 'Sin cuenta enlazada'],
+     ['Canal', CANAL[t.channel] || t.channel],
+     ['Creado', fechaHora(t.created_at)],
+     ['Primera respuesta', t.first_response_at ? fechaHora(t.first_response_at) : 'Sin responder'],
+     ['Asignado a', t.assigned_to ? t.assigned_to.name : 'Sin asignar'],
+     ['Satisfacción', t.csat ? `${t.csat.score} / 5` : '—'],
+     ['Pacientes', pacientes || '—'], ['Dispositivos', disp || '—'],
+    ].forEach(([k, v]) => {
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = v;
+      meta.append(dt, dd);
+    });
+    $('#d-desc').textContent = t.description;
+
+    // acciones: solo admin y soporte escriben (matriz 2.3); analista mira
+    $('#d-actions-card').hidden = !puedeEscribir;
+    $('#d-composer').hidden = !puedeEscribir;
+    if (puedeEscribir) {
+      const destinos = TRANSICIONES[t.status] || [];
+      const sel = $('#d-status');
+      sel.textContent = '';
+      sel.appendChild(new Option(`Estado: ${ESTADO[t.status]}`, ''));
+      destinos.forEach(v => sel.appendChild(new Option('Pasar a ' + ESTADO[v].toLowerCase(), v)));
+      sel.disabled = destinos.length === 0;
+      $('#d-actions-sub').textContent = destinos.length
+        ? 'Solo se ofrecen las transiciones que la especificación permite desde este estado.'
+        : 'Un ticket cerrado no admite más cambios de estado.';
+      const pr = $('#d-priority');
+      pr.textContent = '';
+      pr.appendChild(new Option(`Prioridad: ${PRIORIDAD[t.priority]}`, ''));
+      Object.entries(PRIORIDAD).filter(([v]) => v !== t.priority)
+        .forEach(([v, n]) => pr.appendChild(new Option('Cambiar a ' + n.toLowerCase(), v)));
+      const asig = $('#d-assign');
+      const mio = t.assigned_to && yo && t.assigned_to.admin_id === yo.id;
+      asig.textContent = mio ? 'Desasignarme' : 'Asignármelo';
+      $('#d-msg').classList.remove('on');
+    }
+    pintarHilo(hilo.items, t);
+  } catch (e) {
+    if (e.status !== 401) showError('err-tickets', e);
+  }
+}
+
+function pintarHilo(items, t) {
+  const th = $('#d-thread');
+  th.textContent = '';
+  $('#d-thread-sub').textContent = items.length
+    ? `${items.length} mensaje${items.length > 1 ? 's' : ''}`
+    : 'Todavía no hay mensajes en este ticket.';
+  if (!items.length) {
+    const v = document.createElement('div');
+    v.className = 'empty'; v.textContent = 'Sin mensajes. Escribe el primero abajo.';
+    th.appendChild(v);
+    return;
+  }
+  items.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'msg ' + (m.internal ? 'internal' : m.author_type === 'admin' ? 'admin' : 'user');
+    const h = document.createElement('div');
+    h.className = 'msg-h';
+    const b = document.createElement('b'); b.textContent = m.author_name;
+    h.appendChild(b);
+    if (m.internal) {
+      const et = document.createElement('span');
+      et.className = 'chip warn'; et.textContent = 'Nota interna';
+      h.appendChild(et);
+    }
+    const cuando = document.createElement('span'); cuando.textContent = fechaHora(m.created_at);
+    h.appendChild(cuando);
+    const body = document.createElement('div');
+    body.className = 'msg-b'; body.textContent = m.body;
+    d.append(h, body);
+    th.appendChild(d);
+  });
+}
+
+async function patchTicket(cambio, textoOk) {
+  try {
+    await api(`/support/tickets/${tkActual.id}`, {method: 'PATCH', body: cambio});
+    aviso($('#d-msg'), textoOk, 'ok');
+    await abrirTicket(tkActual.id);
+  } catch (e) {
+    if (e.status !== 401) aviso($('#d-msg'), e.message, 'err');
+  }
+}
+
+/* ---------- eventos ---------- */
+function initTickets() {
+  opciones($('#tk-status'), ESTADO, 'Todos los estados');
+  opciones($('#tk-priority'), PRIORIDAD, 'Toda prioridad');
+  opciones($('#tk-category'), CATEGORIA, 'Todas las categorías');
+  opciones($('#tk-role'), ROLE_SINGLE, 'Todos los perfiles');
+  opciones($('#n-category'), CATEGORIA);
+  opciones($('#n-priority'), PRIORIDAD);
+  $('#n-priority').value = 'medium';
+
+  let t0;
+  $('#tk-q').addEventListener('input', () => {
+    clearTimeout(t0);
+    t0 = setTimeout(() => { tkPag.page = 1; loadTickets(); }, 350);
+  });
+  ['tk-status', 'tk-priority', 'tk-category', 'tk-role', 'tk-order', 'tk-mine'].forEach(id =>
+    $('#' + id).addEventListener('change', () => { tkPag.page = 1; loadTickets(); }));
+  $('#tk-prev').addEventListener('click', () => { tkPag.page--; loadTickets(); });
+  $('#tk-next').addEventListener('click', () => { tkPag.page++; loadTickets(); });
+  $('#tk-back').addEventListener('click', loadTickets);
+
+  $('#d-status').addEventListener('change', e => {
+    if (e.target.value) patchTicket({status: e.target.value}, 'Estado actualizado.');
+  });
+  $('#d-priority').addEventListener('change', e => {
+    if (e.target.value) patchTicket({priority: e.target.value}, 'Prioridad actualizada.');
+  });
+  $('#d-assign').addEventListener('click', () => {
+    const mio = tkActual.assigned_to && tkActual.assigned_to.admin_id === yo.id;
+    patchTicket({assigned_to: mio ? null : yo.id}, mio ? 'Ticket desasignado.' : 'Ticket asignado a ti.');
+  });
+
+  $('#d-send').addEventListener('click', async () => {
+    const cuerpo = $('#d-body').value.trim();
+    if (!cuerpo) { aviso($('#d-send-msg'), 'Escribe un mensaje antes de enviar.', 'err'); return; }
+    const btn = $('#d-send');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      await api(`/support/tickets/${tkActual.id}/replies`,
+                {method: 'POST', body: {body: cuerpo, internal: $('#d-internal').checked}});
+      $('#d-body').value = '';
+      $('#d-internal').checked = false;
+      await abrirTicket(tkActual.id);
+    } catch (e) {
+      if (e.status !== 401) aviso($('#d-send-msg'), e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Enviar';
+    }
+  });
+
+  $('#tk-new').addEventListener('click', () => {
+    $('#n-msg').classList.remove('on');
+    $('#nuevo').hidden = false;
+  });
+  $('#n-cancel').addEventListener('click', () => { $('#nuevo').hidden = true; });
+  $('#n-create').addEventListener('click', async () => {
+    const cuerpo = {subject: $('#n-subject').value.trim(), description: $('#n-desc').value.trim(),
+                    user_email: $('#n-email').value.trim(), category: $('#n-category').value,
+                    priority: $('#n-priority').value, channel: 'console'};
+    if (cuerpo.subject.length < 5 || !cuerpo.description || !cuerpo.user_email) {
+      aviso($('#n-msg'), 'Correo, asunto (mínimo 5 caracteres) y descripción son obligatorios.', 'err');
+      return;
+    }
+    const btn = $('#n-create');
+    btn.disabled = true; btn.textContent = 'Creando…';
+    try {
+      let nuevo;
+      try {
+        nuevo = await api('/support/tickets', {method: 'POST', body: cuerpo});
+      } catch (e) {
+        // 8.3: si el correo no tiene cuenta hay que confirmar que se crea sin enlazar
+        if (e.code === 'USER_NOT_FOUND' &&
+            confirm('Ese correo no corresponde a ninguna cuenta de AgeCare. ¿Crear el ticket sin enlazarlo a un usuario?')) {
+          nuevo = await api('/support/tickets', {method: 'POST', body: {...cuerpo, confirm_unlinked: true}});
+        } else { throw e; }
+      }
+      $('#nuevo').hidden = true;
+      ['n-subject', 'n-desc', 'n-email'].forEach(id => { $('#' + id).value = ''; });
+      await abrirTicket(nuevo.id);
+    } catch (e) {
+      if (e.status !== 401) aviso($('#n-msg'), e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Crear ticket';
+    }
+  });
+}
+
 /* ================================================================
    ARRANQUE
 ================================================================ */
@@ -1407,6 +1909,12 @@ async function boot() {
     showGate(e.status === 401 ? null : 'No se pudo verificar la sesión: ' + e.message);
     return;
   }
+
+  yo = me;
+  // La matriz de permisos (2.3) da lectura al analista y escritura a admin y soporte.
+  // El endpoint /auth/me devuelve módulos, no el nivel, así que se decide por el rol.
+  puedeEscribir = ['admin', 'support'].includes(me.role);
+  initTickets();
 
   const initials = me.full_name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   $('#sf-avatar').textContent = initials;

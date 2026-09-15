@@ -11,13 +11,18 @@ from app.routers import (auth, content, marketplace, metrics_commercial, metrics
 from app.routers import system as system_router
 
 STATIC_DIR = Path(__file__).parent / "static"
+_PROD = get_settings().environment == "prod"
 
 app = FastAPI(
     title="AgeCare Admin API",
     version="1.0.0",
     description="Backend de la Consola de Administración de AgeCare · Wellq Co",
-    docs_url="/api/v1/admin/docs",
-    openapi_url="/api/v1/admin/openapi.json",
+    # En producción la documentación interactiva se oculta: la sección 2.1 de la
+    # especificación pide restringir el acceso a la API, y publicar el catálogo
+    # completo de endpoints y esquemas va en contra de esa intención.
+    docs_url=None if _PROD else "/api/v1/admin/docs",
+    redoc_url=None if _PROD else "/redoc",
+    openapi_url=None if _PROD else "/api/v1/admin/openapi.json",
 )
 app.add_middleware(RequestIdMiddleware)
 register_error_handlers(app)

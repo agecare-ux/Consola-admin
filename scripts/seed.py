@@ -2,14 +2,22 @@
 
 Uso:
     python -m scripts.seed          # crea tablas (si faltan) y siembra datos
-Credenciales demo:
-    admin@wellq.co.uk / Admin123!   (rol admin, sin MFA para facilitar la prueba)
-    soporte@wellq.co.uk / Soporte123!
-    analista@wellq.co.uk / Analista123!
+Credenciales demo (una por cada rol de la matriz de permisos):
+    admin@wellq.co.uk      / Admin123!       rol admin, sin MFA para facilitar la prueba
+    soporte@wellq.co.uk    / Soporte123!     rol support
+    analista@wellq.co.uk   / Analista123!    rol analyst
+    editora@wellq.co.uk    / Editora123!     rol editor
+    moderador@wellq.co.uk  / Moderador123!   rol moderator
+
+Existe además una cuenta con segundo factor (admin.mfa@wellq.co.uk) que se crea para
+poder verificar el flujo TOTP, pero no se anuncia: quien no tenga el secreto en su
+autenticador no podrá entrar con ella. Su secreto está en MFA_SECRET_DEMO.
 """
 import asyncio
 import random
 import uuid
+
+import pyotp
 from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import delete, select
@@ -61,6 +69,9 @@ ADOPTION = {
 }
 ACTIVE_30D = {"family": 5310, "caregiver": 1470, "elder": 2640, "doctor": 420}
 ROLE_ORDER = ["family", "caregiver", "elder", "doctor"]
+
+# Secreto TOTP fijo de la cuenta de demostración con segundo factor.
+MFA_SECRET_DEMO = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
 
 # --- Coherencia de cifras -----------------------------------------------------
 # Las cifras del wireframe se tratan como una MEZCLA (proporciones), no como
@@ -129,6 +140,16 @@ async def seed() -> None:
                              password_hash=hash_password("Analista123!"), is_active=True),
             models.AdminUser(full_name="Carla Núñez", email="editora@wellq.co.uk", role="editor",
                              password_hash=hash_password("Editora123!"), is_active=True),
+            # Quinto rol de la matriz de permisos (2.3). Sin esta cuenta no se puede
+            # comprobar en ejecución que la moderación queda restringida a admin y moderador.
+            models.AdminUser(full_name="Ignacio Salas", email="moderador@wellq.co.uk", role="moderator",
+                             password_hash=hash_password("Moderador123!"), is_active=True),
+            # Cuenta con segundo factor, para poder ejercitar el flujo TOTP de la sección 3.1.
+            # El secreto es fijo a propósito: así se puede cargar en el autenticador una vez
+            # y sigue sirviendo después de cada resiembra.
+            models.AdminUser(full_name="Bryan Ávila", email="admin.mfa@wellq.co.uk", role="admin",
+                             password_hash=hash_password("AdminMfa123!"), is_active=True,
+                             mfa_enabled=True, mfa_secret=MFA_SECRET_DEMO),
         ]
         db.add_all(admins)
         await db.flush()
