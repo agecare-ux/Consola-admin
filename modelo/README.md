@@ -15,20 +15,37 @@ se adapta a este modelo, no al revés (documento, sección 1.2).
 
 Requiere PostgreSQL 16 y las extensiones `citext` y `pg_trgm`.
 
+Lo más cómodo es el script del proyecto, que no necesita tener `psql` en el PATH
+(el instalador de Windows no lo añade) y funciona igual en cualquier sistema:
+
 ```bash
-createdb agecare_canonico
+set ADMIN_DATABASE_URL=postgresql+asyncpg://usuario:clave@host/neondb?ssl=require
+python -m scripts.aplicar_modelo --tests
+```
+
+Acepta la URL tanto en forma asyncpg como tal cual la entrega Neon para `psql`.
+
+Con `psql` directamente:
+
+```bash
 psql -v ON_ERROR_STOP=1 -d agecare_canonico -f modelo/agecare_admin_ddl.sql
 psql -v ON_ERROR_STOP=1 -d agecare_canonico -f modelo/agecare_admin_ddl_tests.sql
 ```
 
 El DDL es idempotente: ejecutarlo dos veces no da error.
 
+**Las pruebas no lo son.** Insertan tenants, cuentas y tickets de mentira para
+comprobar las reglas, y no limpian al terminar: ejecutadas dos veces con `psql`
+fallan por clave duplicada, y dejan esas filas en la base. El script las envuelve
+en una transacción que revierte siempre, así que con `--tests` se pueden repetir
+cuantas veces haga falta y no ensucian nada.
+
 ## Estado de la migración
 
 El código todavía corre sobre el esquema del prototipo (22 tablas, sin tenant).
 La sección 7 del documento enumera las diferencias y la 8 propone seis migraciones.
 
-- [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí
+- [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [ ] Fase 1 · Migración Alembic con el DDL por bloques y `models.py` regenerado
 - [ ] Fase 2 · Tenant en login y JWT, `SET LOCAL` por transacción, traducción de errores de BD
 - [ ] Fase 3 · Routers adaptados a los nombres nuevos
