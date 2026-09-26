@@ -3,7 +3,7 @@
   "functions": {
     "app/main.py": {
       "includeFiles": "app/static/**",
-      "excludeFiles": "{tests/**,scripts/**,alembic/**,.venv/**,**/*.db,**/*.sqlite}"
+      "excludeFiles": "{tests/**,scripts/**,alembic/**,modelo/**,.venv/**,**/*.db,**/*.sqlite}"
     }
   }
 }

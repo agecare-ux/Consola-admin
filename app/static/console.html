@@ -1623,8 +1623,8 @@ const ESTADO    = {open: 'Abierto', in_progress: 'En curso', waiting_user: 'Espe
 const CANAL     = {app: 'App', email: 'Correo', phone: 'Teléfono', console: 'Consola'};
 /* Máquina de estados de la sección 8.4. Se replica aquí para ofrecer solo los
    destinos válidos; el backend la vuelve a comprobar y responde INVALID_TRANSITION. */
-const TRANSICIONES = {open: ['in_progress', 'resolved'], in_progress: ['waiting_user', 'resolved'],
-                      waiting_user: ['in_progress', 'resolved'],
+const TRANSICIONES = {open: ['in_progress'], in_progress: ['waiting_user', 'resolved'],
+                      waiting_user: ['in_progress'],
                       resolved: ['in_progress', 'closed'], closed: []};
 
 let yo = null;                // administrador de la sesión, de /auth/me

@@ -24,9 +24,13 @@ SYNC_COMPONENTS = [ComponentKey.database, ComponentKey.api_core, ComponentKey.au
 
 _SEVERITY_ORDER = {ComponentStatus.operational: 0, ComponentStatus.degraded: 1, ComponentStatus.outage: 2}
 
+# Sección 5.6: "investigating → observing → resolved; mantenimientos → completed".
+# Coincide con admin.incident_status_transitions. No hay marcha atrás de observing a
+# investigating: un incidente que reaparece se registra como incidente nuevo, para no
+# perder la trazabilidad del primero.
 VALID_TRANSITIONS = {
     IncidentStatus.investigating: {IncidentStatus.observing, IncidentStatus.resolved},
-    IncidentStatus.observing: {IncidentStatus.resolved, IncidentStatus.completed, IncidentStatus.investigating},
+    IncidentStatus.observing: {IncidentStatus.resolved, IncidentStatus.completed},
     IncidentStatus.resolved: set(),
     IncidentStatus.completed: set(),
 }

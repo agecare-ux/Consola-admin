@@ -14,3 +14,8 @@ argon2-cffi==25.1.0
 PyJWT==2.13.0
 pyotp==2.10.0
 jsonschema==4.26.0
+# Base de datos de zonas horarias. Linux la trae en el sistema y Windows no, así que
+# sin este paquete ZoneInfo("America/Santiago") —la zona de negocio de la sección 2.7—
+# falla en Windows. Declararla hace que el cálculo de periodos no dependa del sistema
+# operativo donde se ejecute.
+tzdata==2026.1

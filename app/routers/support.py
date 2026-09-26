@@ -19,10 +19,15 @@ from app.security import now_utc
 
 router = APIRouter(prefix="/support", tags=["Soporte"])
 
+# Las seis transiciones de la sección 8.4: "open → in_progress → waiting_user |
+# resolved; waiting_user → in_progress; resolved → closed o reapertura resolved →
+# in_progress". Coinciden una a una con admin.ticket_status_transitions del modelo
+# de datos, que además las impone por trigger. Un ticket abierto no salta a resuelto
+# sin pasar por en curso: siempre queda constancia de quién lo tomó.
 VALID_TRANSITIONS = {
-    TicketStatus.open: {TicketStatus.in_progress, TicketStatus.resolved},
+    TicketStatus.open: {TicketStatus.in_progress},
     TicketStatus.in_progress: {TicketStatus.waiting_user, TicketStatus.resolved},
-    TicketStatus.waiting_user: {TicketStatus.in_progress, TicketStatus.resolved},
+    TicketStatus.waiting_user: {TicketStatus.in_progress},
     TicketStatus.resolved: {TicketStatus.in_progress, TicketStatus.closed},  # reapertura o cierre
     TicketStatus.closed: set(),
 }

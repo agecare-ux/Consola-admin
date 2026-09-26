@@ -172,4 +172,9 @@ WRITE = {"ops": {AdminRole.admin, AdminRole.support},
          "moderation": {AdminRole.admin, AdminRole.moderator},
          "settings": {AdminRole.admin},
          "legal": {AdminRole.admin},
-         "staff": {AdminRole.admin}}
+         "staff": {AdminRole.admin},
+         # El modelo canónico (admin_role_permissions) da al admin acceso de escritura
+         # sobre auditoría. Hoy no existe ningún endpoint que escriba en el registro
+         # —lo alimenta el propio sistema y es inmutable—, pero la matriz se mantiene
+         # literal para que en la fase 1 pueda cargarse directamente de la tabla.
+         "audit": {AdminRole.admin}}

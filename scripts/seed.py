@@ -594,6 +594,22 @@ async def seed() -> None:
                                              "error_rate": {"type": "number", "minimum": 0, "maximum": 1}},
                               "required": ["p95_ms", "error_rate"],
                               "additionalProperties": False}),
+            # Los dos siguientes los define el modelo canónico (setting_definitions) y
+            # nosotros los teníamos escritos en el código: el dominio corporativo en
+            # app/routers/auth.py y el umbral de adopción como valor por defecto del
+            # endpoint 7.3. Se siembran ya para que la consola muestre el catálogo
+            # completo; conectarlos al código es trabajo de la fase 3.
+            models.SystemSetting(
+                key="allowed_email_domains", description="Dominios permitidos para cuentas de staff.",
+                value=["wellq.co.uk"],
+                value_schema={"type": "array",
+                              "items": {"type": "string", "pattern": r"^[a-z0-9.-]+\.[a-z]{2,}$"},
+                              "minItems": 1}),
+            models.SystemSetting(
+                key="feature_adoption_low_threshold",
+                description="Umbral de adopción baja por defecto en las alertas de funcionalidad.",
+                value=0.15,
+                value_schema={"type": "number", "minimum": 0.01, "maximum": 0.5}),
         ])
 
         # ---- Legales ----

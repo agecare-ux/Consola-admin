@@ -134,6 +134,11 @@ async def main():
         check("5.6", "transición investigating->completed -> INVALID_TRANSITION", 409, "INVALID_TRANSITION",
               await c.patch(f"{P}/ops/incidents/{iid}", headers=H,
                             json={"status": "completed", "resolution": "x" * 20}))
+        # Sección 5.6: no hay marcha atrás. Un incidente en observación no vuelve a
+        # investigación; si el problema reaparece se abre uno nuevo.
+        await c.patch(f"{P}/ops/incidents/{iid}", headers=H, json={"status": "observing"})
+        check("5.6", "observing -> investigating rechazada (no hay marcha atrás)", 409, "INVALID_TRANSITION",
+              await c.patch(f"{P}/ops/incidents/{iid}", headers=H, json={"status": "investigating"}))
 
         # ---------- 6.1 / 6.2 rangos ----------
         check("6.1", "days=3 (fuera de 7-90) -> 422", 422, None,
@@ -183,8 +188,40 @@ async def main():
                            tk.json().get("status") == "open" and isinstance(tk.json().get("number"), int), ""))
         check("8.4", "agente inexistente -> ASSIGNEE_NOT_FOUND", 404, "ASSIGNEE_NOT_FOUND",
               await c.patch(f"{P}/support/tickets/{tid}", headers=H, json={"assigned_to": str(uuid.uuid4())}))
-        check("8.4", "open->closed no permitido -> INVALID_TRANSITION", 409, "INVALID_TRANSITION",
-              await c.patch(f"{P}/support/tickets/{tid}", headers=H, json={"status": "closed"}))
+        # Matriz completa de la sección 8.4, fila por fila. Comprobar solo un caso
+        # prohibido deja pasar lo contrario: permitir transiciones que la spec no
+        # contempla. Aquí se verifica también que las permitidas funcionan.
+        FILAS = {
+            "open":         {"in_progress"},
+            "in_progress":  {"waiting_user", "resolved"},
+            "waiting_user": {"in_progress"},
+            "resolved":     {"in_progress", "closed"},
+        }
+        TODOS = ["open", "in_progress", "waiting_user", "resolved", "closed"]
+
+        async def estado_actual(ticket_id):
+            return (await c.get(f"{P}/support/tickets/{ticket_id}", headers=H)).json()["status"]
+
+        for origen, permitidos in FILAS.items():
+            for destino in TODOS:
+                if destino == origen:
+                    continue
+                # ticket nuevo llevado hasta el estado de origen
+                t = (await c.post(f"{P}/support/tickets", headers=H,
+                                  json={"subject": f"Auditoría de transiciones {origen}->{destino}",
+                                        "description": "Creado por la auditoría de contrato.",
+                                        "user_email": "nadie@ejemplo.com", "category": "other",
+                                        "confirm_unlinked": True})).json()
+                camino = {"open": [], "in_progress": ["in_progress"],
+                          "waiting_user": ["in_progress", "waiting_user"],
+                          "resolved": ["in_progress", "resolved"]}[origen]
+                for paso in camino:
+                    await c.patch(f"{P}/support/tickets/{t['id']}", headers=H, json={"status": paso})
+                r = await c.patch(f"{P}/support/tickets/{t['id']}", headers=H, json={"status": destino})
+                if destino in permitidos:
+                    check("8.4", f"{origen} -> {destino} permitida", 200, None, r)
+                else:
+                    check("8.4", f"{origen} -> {destino} rechazada", 409, "INVALID_TRANSITION", r)
         check("8.5", "responder -> 201 Created", 201, None,
               await c.post(f"{P}/support/tickets/{tid}/replies", headers=H,
                            json={"body": "Respuesta de auditoría", "internal": False}))
@@ -274,8 +311,11 @@ async def main():
         acciones = {x["action"] for x in au["items"]}
         resultados.append(("14", f"las mutaciones dejan rastro ({len(acciones)} acciones distintas)",
                            len(acciones) > 3, ", ".join(sorted(acciones)[:6])))
+        # Se consulta por acción en vez de mirar la primera página: con suficientes
+        # mutaciones, los inicios de sesión dejan de aparecer en ella.
+        fallidos = (await c.get(f"{P}/audit-log?action=auth.login_failed", headers=H)).json()
         resultados.append(("3.1", "login fallido registrado en auditoría",
-                           any("login" in a for a in acciones), ", ".join(a for a in acciones if "login" in a)))
+                           fallidos["total"] > 0, f'{fallidos["total"]} entradas auth.login_failed'))
 
         # ---------- computed_at ----------
         for ruta in ["/metrics/commercial/summary?period=today", "/metrics/commercial/plans",
