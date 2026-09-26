@@ -3,3 +3,7 @@ pytest>=8.2
 pytest-asyncio>=0.23
 httpx>=0.27
 # aiosqlite ya no hace falta: la suite corre sobre PostgreSQL (ver tests/conftest.py)
+
+# Generación de app/models_canonico.py desde la base (scripts/generar_modelos.py)
+sqlacodegen>=3.0
+psycopg2-binary>=2.9

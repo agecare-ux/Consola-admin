@@ -84,6 +84,39 @@ async def ejecutar(conn: asyncpg.Connection, archivo: Path, etiqueta: str,
     return avisos
 
 
+# Los tres roles que usan las pruebas, con los MISMOS atributos con que las pruebas
+# los crearían. Importa replicarlos exactos: el fichero usa IF NOT EXISTS, así que si
+# aquí se crea job_test sin BYPASSRLS, las pruebas lo dan por bueno y luego fallan al
+# insertar en una tabla con seguridad por fila.
+ROLES_DE_PRUEBA = [
+    ("api_test", "LOGIN IN ROLE agecare_admin_api"),
+    ("ro_test", "LOGIN IN ROLE agecare_admin_ro"),
+    ("job_test", "LOGIN BYPASSRLS IN ROLE agecare_admin_jobs"),
+]
+
+
+async def preparar_roles_de_prueba(conn: asyncpg.Connection) -> None:
+    """Crea los tres roles de prueba y se concede el permiso para conmutar a ellos.
+
+    Las pruebas hacen SET ROLE api_test para comprobar que la seguridad por fila y
+    los permisos por rol funcionan. En un PostgreSQL local uno suele ser superusuario
+    y SET ROLE vale para cualquiera, pero en Neon el rol propietario no lo es: puede
+    crear roles (tiene CREATEROLE) pero no conmutar a ellos sin que se le conceda
+    explícitamente el permiso SET, que PostgreSQL 16 separa de ADMIN.
+
+    Es best-effort: si algo falla se sigue adelante y el error real, si lo hay,
+    aparecerá al ejecutar las pruebas con un mensaje más concreto.
+    """
+    for rol, atributos in ROLES_DE_PRUEBA:
+        try:
+            await conn.execute(
+                f"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='{rol}') "
+                f"THEN CREATE ROLE {rol} {atributos}; END IF; END $$;")
+            await conn.execute(f"GRANT {rol} TO CURRENT_USER WITH SET TRUE")
+        except asyncpg.PostgresError:
+            pass
+
+
 async def principal(url: str, con_pruebas: bool, solo_pruebas: bool) -> int:
     destino = normalizar(url)
     visible = re.sub(r"://[^:]+:[^@]+@", "://***:***@", destino)
@@ -107,6 +140,7 @@ async def principal(url: str, con_pruebas: bool, solo_pruebas: bool) -> int:
             print(f"  hecho: {tablas} tablas y {politicas} políticas de seguridad en el esquema admin")
 
         if con_pruebas or solo_pruebas:
+            await preparar_roles_de_prueba(conn)
             avisos = await ejecutar(conn, PRUEBAS, "las pruebas del DDL", deshacer=True)
             ok = [a for a in avisos if a.startswith("OK")]
             mal = [a for a in avisos if "FALLO" in a.upper()]
@@ -120,6 +154,11 @@ async def principal(url: str, con_pruebas: bool, solo_pruebas: bool) -> int:
                 return 1
     except asyncpg.PostgresError as e:
         print(f"\nError de PostgreSQL:\n  {type(e).__name__}: {e}", file=sys.stderr)
+        if "set role" in str(e).lower() or "grant role" in str(e).lower():
+            print("\n  Las pruebas necesitan conmutar de rol para comprobar la seguridad por fila,\n"
+                  "  y el usuario de esta base no tiene ese permiso. El DDL sí se aplicó: lo que\n"
+                  "  no se pudo ejecutar son las comprobaciones. Córrelas contra un PostgreSQL\n"
+                  "  local, donde eres superusuario; validan el mismo SQL.", file=sys.stderr)
         return 1
     finally:
         await conn.close()

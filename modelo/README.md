@@ -34,7 +34,21 @@ psql -v ON_ERROR_STOP=1 -d agecare_canonico -f modelo/agecare_admin_ddl_tests.sq
 
 El DDL es idempotente: ejecutarlo dos veces no da error.
 
-**Las pruebas no lo son.** Insertan tenants, cuentas y tickets de mentira para
+### Dónde ejecutar cada cosa
+
+| | Neon | PostgreSQL local |
+|---|---|---|
+| DDL (`aplicar_modelo`) | sí, verificado | sí |
+| Pruebas (`--tests`) | no | sí |
+
+Las pruebas hacen `SET ROLE` para comprobar la seguridad por fila y los permisos por
+rol. En un PostgreSQL local eres superusuario y eso vale para cualquier rol; en Neon
+el rol propietario no lo es y PostgreSQL 16 separa el permiso de conmutar (SET) del
+de administrar (ADMIN). El script intenta concedérselo, y si no puede lo dice en vez
+de soltar el error en crudo. **No es un problema del DDL**: el esquema se aplica bien
+en Neon, y las pruebas validan el mismo SQL corran donde corran.
+
+**Las pruebas no son idempotentes.** Insertan tenants, cuentas y tickets de mentira para
 comprobar las reglas, y no limpian al terminar: ejecutadas dos veces con `psql`
 fallan por clave duplicada, y dejan esas filas en la base. El script las envuelve
 en una transacción que revierte siempre, así que con `--tests` se pueden repetir
@@ -46,11 +60,29 @@ El código todavía corre sobre el esquema del prototipo (22 tablas, sin tenant)
 La sección 7 del documento enumera las diferencias y la 8 propone seis migraciones.
 
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
-- [ ] Fase 1 · Migración Alembic con el DDL por bloques y `models.py` regenerado
+- [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
 - [ ] Fase 2 · Tenant en login y JWT, `SET LOCAL` por transacción, traducción de errores de BD
 - [ ] Fase 3 · Routers adaptados a los nombres nuevos
 - [ ] Fase 4 · Seed con tenants y catálogos
 - [ ] Fase 5 · Verificación contra las tres auditorías
+
+### Cómo se regeneran los modelos
+
+`app/models_canonico.py` está generado, no escrito a mano. Si el DDL cambia:
+
+```bash
+createdb canonico
+python -m scripts.aplicar_modelo --url "postgresql://postgres:postgres@127.0.0.1:5432/canonico"
+python -m scripts.generar_modelos
+```
+
+Mapea las 58 tablas lógicas (no las particiones), declara una Base propia para no
+mezclarse con la del prototipo, y renombra quince clases a los nombres que ya usan
+los routers. Verificado contra la base: 58 tablas y 613 columnas, coincidencia exacta.
+
+Mientras dure la transición conviven los dos esquemas: el prototipo en `public` y el
+canónico en `admin`. `alembic upgrade head` crea ambos. Al terminar la fase 3 se
+elimina la revisión 0001 y `public` queda vacío.
 
 El criterio de que la migración no rompió nada son las suites que ya existen:
 23 tests, 19 comprobaciones de permisos y 80 de conformidad con la especificación.
