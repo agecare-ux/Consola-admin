@@ -117,7 +117,24 @@ async def preparar_roles_de_prueba(conn: asyncpg.Connection) -> None:
             pass
 
 
-async def principal(url: str, con_pruebas: bool, solo_pruebas: bool) -> int:
+async def crear_rol_api(conn: asyncpg.Connection, usuario: str, clave: str) -> None:
+    """Crea el rol de login con el que debe conectarse la aplicación.
+
+    El DDL activa la seguridad por fila pero no la fuerza, y en PostgreSQL el
+    propietario de una tabla queda exento de sus políticas. Conectando la API como
+    propietario, las 45 políticas de aislamiento no filtran nada. Este rol hereda de
+    agecare_admin_api, que sí está sujeto a ellas.
+    """
+    await conn.execute(
+        f"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='{usuario}') "
+        f"THEN CREATE ROLE {usuario} LOGIN PASSWORD '{clave}' IN ROLE agecare_admin_api; "
+        f"ELSE ALTER ROLE {usuario} LOGIN PASSWORD '{clave}'; END IF; END $$;")
+    await conn.execute(f"GRANT agecare_admin_api TO {usuario}")
+    print(f"  rol {usuario} listo (miembro de agecare_admin_api)")
+    print(f"  apunta ADMIN_DATABASE_URL a ese usuario para que el aislamiento actúe")
+
+
+async def principal(url: str, con_pruebas: bool, solo_pruebas: bool, rol_api: str | None = None) -> int:
     destino = normalizar(url)
     visible = re.sub(r"://[^:]+:[^@]+@", "://***:***@", destino)
     print(f"Destino: {visible}")
@@ -138,6 +155,13 @@ async def principal(url: str, con_pruebas: bool, solo_pruebas: bool) -> int:
                 "where n.nspname = 'admin' and c.relkind in ('r','p') and not c.relispartition")
             politicas = await conn.fetchval("select count(*) from pg_policies where schemaname = 'admin'")
             print(f"  hecho: {tablas} tablas y {politicas} políticas de seguridad en el esquema admin")
+
+        if rol_api:
+            usuario, _, clave = rol_api.partition(":")
+            if not clave:
+                print("  --rol-api necesita el formato usuario:clave", file=sys.stderr)
+                return 2
+            await crear_rol_api(conn, usuario, clave)
 
         if con_pruebas or solo_pruebas:
             await preparar_roles_de_prueba(conn)
@@ -172,11 +196,27 @@ if __name__ == "__main__":
     ap.add_argument("--url", help="URL de conexión. Si no se indica, se usa ADMIN_DATABASE_URL.")
     ap.add_argument("--tests", action="store_true", help="Ejecutar las pruebas después del DDL.")
     ap.add_argument("--solo-tests", action="store_true", help="Ejecutar solo las pruebas.")
+    ap.add_argument("--rol-api", metavar="USUARIO:CLAVE",
+                    help="Crea un rol de login miembro de agecare_admin_api. La aplicación "
+                         "debe conectarse con él: el propietario de las tablas queda exento "
+                         "de la seguridad por fila y el aislamiento entre tenants no actuaría.")
     args = ap.parse_args()
 
-    import os
-    destino = args.url or os.environ.get("ADMIN_DATABASE_URL")
+    # El orden es: --url, luego la variable de entorno, y por último la configuración
+    # de la aplicación, que es la única que lee el archivo .env. Sin este último paso
+    # el script ignoraba el .env y pedía la URL aunque estuviera definida ahí.
+    destino = args.url
     if not destino:
-        print("Falta la URL. Define ADMIN_DATABASE_URL o pasa --url.", file=sys.stderr)
+        import os
+        destino = os.environ.get("ADMIN_DATABASE_URL")
+    if not destino:
+        try:
+            from app.config import get_settings
+            destino = get_settings().database_url
+        except Exception:
+            destino = None
+    if not destino:
+        print("Falta la URL. Pásala con --url, define ADMIN_DATABASE_URL, o ponla "
+              "como ADMIN_DATABASE_URL en el archivo .env del proyecto.", file=sys.stderr)
         raise SystemExit(2)
-    raise SystemExit(asyncio.run(principal(destino, args.tests, args.solo_tests)))
+    raise SystemExit(asyncio.run(principal(destino, args.tests, args.solo_tests, args.rol_api)))

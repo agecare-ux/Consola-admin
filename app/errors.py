@@ -6,6 +6,7 @@ Todo error responde:
 import uuid
 
 from fastapi import FastAPI, Request
+from sqlalchemy.exc import DBAPIError
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -61,6 +62,76 @@ def _body(request: Request, code: str, message: str, details: list | None = None
     }}
 
 
+# ---------------------------------------------------------------------------
+# Traducción de errores del esquema canónico
+# ---------------------------------------------------------------------------
+# El modelo de datos impone por trigger las mismas reglas que la API valida en
+# Python, y lanza el código de la especificación al principio del mensaje. Sin
+# traducirlo, cualquiera de esas reglas saltando en la base devolvería un 500
+# genérico en vez del 409 documentado. Es el punto abierto 9.6 del modelo.
+#
+# Las validaciones de los routers siguen ahí: son las que dan el mensaje en
+# español y el detalle por campo. Esto es la red de seguridad para lo que se
+# escape, y la única defensa cuando algo escriba en la base fuera de la API.
+CODIGOS_DEL_ESQUEMA: dict[str, tuple[int, str]] = {
+    "LAST_ADMIN": (409, "No puedes dejar el sistema sin ninguna cuenta de administrador activa."),
+    "INVALID_TRANSITION": (409, "Ese cambio de estado no está permitido desde el estado actual."),
+    "TICKET_CLOSED": (409, "El ticket está cerrado y no admite nuevas respuestas."),
+    "ALREADY_MODERATED": (409, "Otra persona ya moderó este elemento."),
+    "VERSION_CONFLICT": (409, "Alguien modificó este registro mientras lo editabas. Vuelve a cargarlo."),
+}
+
+# Mensajes del esquema que no llevan prefijo de código, con el que les corresponde.
+MENSAJES_SIN_CODIGO: list[tuple[str, int, str, str]] = [
+    ("versión legal publicada es inmutable", 409, "ALREADY_PUBLISHED",
+     "Una versión legal publicada no se puede modificar."),
+    ("versión publicada no puede volver a borrador", 409, "ALREADY_PUBLISHED",
+     "Una versión publicada no puede volver a borrador."),
+    ("es inmutable: no admite", 403, "FORBIDDEN",
+     "Esa tabla es de solo lectura: el registro de auditoría no se modifica."),
+]
+
+# Errores genéricos de PostgreSQL, por si ninguna regla con nombre encaja.
+POR_SQLSTATE: dict[str, tuple[int, str, str]] = {
+    "23505": (409, "CONFLICT", "Ya existe un registro con esos datos."),
+    "23503": (422, "VALIDATION_ERROR", "Referencia a un registro que no existe."),
+    "23514": (422, "VALIDATION_ERROR", "Los datos no cumplen una restricción del modelo."),
+    "42501": (403, "FORBIDDEN", "No tienes permiso sobre esos datos."),
+    "40001": (409, "CONFLICT", "Conflicto de concurrencia. Vuelve a intentarlo."),
+}
+
+
+def traducir_error_de_bd(exc: Exception) -> ApiError | None:
+    """Convierte una excepción de PostgreSQL en el error documentado, si lo hay.
+
+    Devuelve None cuando no reconoce el error, para que siga su camino y acabe
+    como INTERNAL_ERROR: es preferible un 500 honesto a un 409 inventado.
+    """
+    # Hay tres capas: la excepción de SQLAlchemy, el envoltorio DBAPI del dialecto
+    # asyncpg, y dentro de él la excepción real de asyncpg. El texto limpio del
+    # RAISE EXCEPTION solo está en la última; el del envoltorio viene precedido del
+    # nombre de la clase, que rompería cualquier intento de leer el código.
+    orig = getattr(exc, "orig", exc)
+    raiz = getattr(orig, "__cause__", None) or orig
+    mensaje = str(getattr(raiz, "message", None) or raiz)
+    sqlstate = (getattr(raiz, "sqlstate", None) or getattr(orig, "sqlstate", None)
+                or getattr(orig, "pgcode", None))
+
+    codigo = mensaje.split(":", 1)[0].strip()
+    if codigo in CODIGOS_DEL_ESQUEMA:
+        estado, texto = CODIGOS_DEL_ESQUEMA[codigo]
+        return ApiError(estado, codigo, texto)
+
+    for fragmento, estado, cod, texto in MENSAJES_SIN_CODIGO:
+        if fragmento in mensaje:
+            return ApiError(estado, cod, texto)
+
+    if sqlstate in POR_SQLSTATE:
+        estado, cod, texto = POR_SQLSTATE[sqlstate]
+        return ApiError(estado, cod, texto)
+    return None
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError):
@@ -76,6 +147,15 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(status_code=422, content=_body(
             request, "VALIDATION_ERROR",
             "Hay datos inválidos en la solicitud. Revisa los campos marcados.", details))
+
+    @app.exception_handler(DBAPIError)
+    async def db_error_handler(request: Request, exc: DBAPIError):
+        traducido = traducir_error_de_bd(exc)
+        if traducido is None:
+            return JSONResponse(status_code=500, content=_body(
+                request, "INTERNAL_ERROR", "Error interno. Revisa el request_id en los logs."))
+        return JSONResponse(status_code=traducido.status_code, content=_body(
+            request, traducido.code, traducido.message, traducido.details))
 
     @app.exception_handler(Exception)
     async def internal_handler(request: Request, exc: Exception):

@@ -43,11 +43,15 @@ def as_utc(dt: datetime | None) -> datetime | None:
     return dt
 
 
-def create_access_token(admin_id: UUID, role: str) -> str:
+def create_access_token(admin_id: UUID, role: str, tenant_id: str | None = None) -> str:
     s = get_settings()
     payload = {
         "sub": str(admin_id),
         "role": role,
+        # El tenant viaja en el token para que cada petición pueda declararlo sin
+        # volver a consultarlo. Hoy es el mismo para todos; cuando se decida cómo
+        # resolverlo en el login (punto abierto 9.1), solo cambia quién lo calcula.
+        "tenant": tenant_id or s.tenant_id,
         "type": "access",
         "iat": int(now_utc().timestamp()),
         "exp": now_utc() + timedelta(minutes=s.access_token_minutes),

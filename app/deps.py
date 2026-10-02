@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
-from app.database import get_db
+from app.database import fijar_contexto, get_db
 from app.enums import READ, WRITE, AdminRole
 from app.errors import forbidden, unauthorized
 from app.security import decode_access_token
@@ -27,6 +27,9 @@ async def get_current_admin(request: Request,
     if admin is None or not admin.is_active:
         raise unauthorized()
     request.state.actor = admin
+    # Ya se sabe quién pregunta: se declara para los triggers de historial del
+    # esquema canónico. El tenant lo fijó get_db al abrir la transacción.
+    await fijar_contexto(db, tenant_id=payload.get("tenant"), actor_id=str(admin.id))
     return admin
 
 

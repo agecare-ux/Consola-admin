@@ -34,38 +34,43 @@ TODAY = date.today()
 NOW = datetime.now(timezone.utc)
 
 FEATURES = [
+    # Catálogo oficial del modelo de datos (admin.features y admin.feature_roles).
+    # El equipo decidió trabajar con estas diez; las cinco del wireframe que el modelo
+    # no recoge (centro de alertas, vitals, bitácora, chat y documentos médicos) se
+    # valorarán más adelante. Ojo: el modelo no solo quita funciones, también cambia
+    # nombres y a qué perfiles aplica cada una, así que ambas cosas vienen de él.
     # key, nombre, roles aplicables, expected_low, nota, orden
-    ("home_status", "Inicio / semáforo", ["family", "caregiver", "doctor"], False, None, 1),
-    ("alert_center", "Centro de alertas", ["family", "caregiver", "doctor"], False, None, 2),
-    ("vitals", "Vitals del wearable", ["family", "caregiver", "doctor"], False, None, 3),
-    ("medications", "Medicamentos y adherencia", ["family", "caregiver", "doctor"], False, None, 4),
-    ("checkin", "Check-in diario", ["caregiver"], False, None, 5),
-    ("logbook", "Bitácora y observaciones", ["family", "caregiver", "doctor"], False, None, 6),
-    ("chat", "Chat de coordinación", ["family", "caregiver", "elder", "doctor"], False, None, 7),
-    ("ai_assistant", "Asistente IA", ["family", "caregiver", "doctor"], False,
-     "Evaluar resúmenes clínicos automáticos para médicos.", 8),
-    ("photos", "Fotos compartidas", ["family", "caregiver", "elder"], False, None, 9),
-    ("entertainment", "Entretenimiento", ["elder"], False, None, 10),
-    ("music_director", "Director Musical", ["family", "elder"], False, None, 11),
-    ("documents", "Documentos médicos", ["family", "caregiver", "doctor"], False, None, 12),
-    ("premium_reports", "Reportes (premium)", ["family", "caregiver", "doctor"], False,
-     "Función de pago poco descubierta; probar oferta contextual tras 30 días de uso.", 13),
-    ("marketplace", "Marketplace", ["family", "caregiver"], False,
-     "Vitrina Could de v1 con adopción marginal. Decidir: rediseñar el descubrimiento o posponer a fase 2.", 14),
+    ("home_traffic_light", "Inicio / semáforo", ["caregiver", "family"], False,
+     "La promesa central del producto.", 1),
+    ("medications", "Medicamentos", ["caregiver", "doctor", "elder", "family"], False, None, 2),
+    ("checkin", "Check-in diario", ["caregiver", "elder"], False, None, 3),
+    ("photos", "Fotos", ["elder", "family"], False, None, 4),
+    ("entertainment", "Entretenimiento curado", ["elder"], False, None, 5),
+    ("ai_assistant", "Asistente IA", ["caregiver", "doctor", "family"], False,
+     "Evaluar resúmenes clínicos automáticos para médicos.", 6),
+    ("marketplace", "Marketplace", ["caregiver", "family"], False,
+     "Vitrina Could de v1 con adopción marginal. Decidir: rediseñar el descubrimiento o posponer a fase 2.", 7),
+    ("premium_reports", "Reportes premium", ["family"], False,
+     "Función de pago poco descubierta; probar oferta contextual tras 30 días de uso.", 8),
     ("sos", "SOS", ["caregiver", "elder"], True,
-     "Uso bajo por diseño: es un evento de emergencia, no una función de uso diario.", 15),
+     "Uso bajo por diseño: es un evento de emergencia, no una función de uso diario.", 9),
+    ("music_director", "Director Musical", ["caregiver", "elder"], False, None, 10),
 ]
 
 # Adopción (%) por rol [family, caregiver, elder, doctor] — igual que el wireframe
 ADOPTION = {
-    "home_status": [92, 88, None, 61], "alert_center": [84, 71, None, 33],
-    "vitals": [77, 64, None, 58], "medications": [69, 91, None, 72],
-    "checkin": [None, 86, None, None], "logbook": [48, 83, None, 39],
-    "chat": [62, 55, 47, 12], "ai_assistant": [41, 18, None, 9],
-    "photos": [58, 22, 66, None], "entertainment": [None, None, 54, None],
-    "music_director": [21, None, 38, None], "documents": [34, 29, None, 44],
-    "premium_reports": [9, 13, None, 7], "marketplace": [11, 6, None, None],
-    "sos": [None, 4, 2, None],
+    # Porcentajes del wireframe, con None donde la función no aplica al perfil según
+    # admin.feature_roles. Orden de las columnas: family, caregiver, elder, doctor.
+    "home_traffic_light": [92, 88, None, None],
+    "medications":        [69, 91, 34, 72],
+    "checkin":            [None, 86, 41, None],
+    "photos":             [58, None, 66, None],
+    "entertainment":      [None, None, 54, None],
+    "ai_assistant":       [41, 18, None, 9],
+    "marketplace":        [11, 6, None, None],
+    "premium_reports":    [9, None, None, None],
+    "sos":                [None, 4, 2, None],
+    "music_director":     [None, 19, 38, None],
 }
 ACTIVE_30D = {"family": 5310, "caregiver": 1470, "elder": 2640, "doctor": 420}
 ROLE_ORDER = ["family", "caregiver", "elder", "doctor"]

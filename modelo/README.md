@@ -61,7 +61,7 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
 
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
-- [ ] Fase 2 · Tenant en login y JWT, `SET LOCAL` por transacción, traducción de errores de BD
+- [x] Fase 2 · Tenant en el token, contexto por transacción y traducción de errores de la base
 - [ ] Fase 3 · Routers adaptados a los nombres nuevos
 - [ ] Fase 4 · Seed con tenants y catálogos
 - [ ] Fase 5 · Verificación contra las tres auditorías
@@ -101,13 +101,53 @@ app (4), planes (4), categorías de ticket (6) y componentes de operación (9).
 | `allowed_email_domains` y `feature_adoption_low_threshold` estaban fijos en el código | Nosotros | Sembrados como parámetros. Conectarlos al código es trabajo de la fase 3. |
 | La matriz daba al admin lectura sobre auditoría; el modelo da escritura | Nosotros | Alineado. No hay endpoint que escriba en el registro, pero la matriz queda literal para poder cargarla de `admin_role_permissions`. |
 
-### Punto abierto: el catálogo de funcionalidades
+### Resuelto: el catálogo de funcionalidades
 
-`admin.features` define **10** funcionalidades y el wireframe muestra **15**. Faltan en
-el modelo: `alert_center`, `vitals`, `logbook`, `chat` y `documents`. Además el modelo
-llama `home_traffic_light` a lo que nosotros llamamos `home_status`.
+`admin.features` define 10 funcionalidades y el wireframe mostraba 15. El equipo
+decidió **trabajar con las 10 del modelo** y valorar más adelante si se incorporan
+`alert_center`, `vitals`, `logbook`, `chat` y `documents`.
 
-De momento el seed mantiene las 15 del wireframe, para no hacer desaparecer filas del
-mapa de calor sin que nadie lo haya decidido. **Hay que preguntar al equipo** si la
-reducción a 10 es deliberada o un olvido, y adoptar la lista que confirmen antes de
-la fase 4.
+El seed ya usa el catálogo oficial. No era solo quitar cinco: el modelo también
+renombra `home_status` a `home_traffic_light` y cambia a qué perfiles aplica cada
+función. Se adoptaron ambas cosas, así que `admin.feature_roles` y el seed coinciden
+en los 21 pares función/rol. El mapa de calor de la consola pasa de 15 filas a 10.
+
+## Con qué rol debe conectarse la aplicación
+
+Comprobado en PostgreSQL 16: declarando el mismo tenant y ejecutando la misma
+consulta, el propietario de las tablas ve los datos de **todos** los tenants y un
+rol miembro de `agecare_admin_api` ve solo los suyos.
+
+| Conexión | Tenants visibles |
+|---|---|
+| Propietario de las tablas | 2 — se salta el aislamiento |
+| Miembro de `agecare_admin_api` | 1 — aislado |
+
+La causa es que el DDL activa la seguridad por fila pero no la fuerza
+(`FORCE ROW LEVEL SECURITY` no aparece), y en PostgreSQL el propietario de una tabla
+queda exento salvo que se fuerce.
+
+**Consecuencia para el despliegue:** en Neon la aplicación se conecta hoy como
+`neondb_owner`, que es quien creó las tablas. Si se deja así, las 45 políticas de
+aislamiento no protegerían nada. Antes de la fase 3 hay que crear un rol de login
+miembro de `agecare_admin_api` y apuntar `ADMIN_DATABASE_URL` a él:
+
+```sql
+CREATE ROLE agecare_api LOGIN PASSWORD '…' IN ROLE agecare_admin_api;
+```
+
+Consultado al autor del modelo: responde que hagamos lo que menos moleste hasta la
+entrega al usuario final. Se opta por **crear el rol desde ya**, no por dejarlo para
+el final:
+
+```bash
+python -m scripts.aplicar_modelo --rol-api "agecare_api:CLAVE"
+```
+
+El motivo es que activar el aislamiento el último día convierte un problema pequeño
+y repartido en uno grande y concentrado. Con el rol puesto desde el principio, cada
+consulta que escribamos en la fase 3 se ejerce ya bajo las políticas y los fallos
+aparecen de uno en uno, cuando son baratos de arreglar. El coste de hacerlo ahora es
+una sentencia SQL y una variable de entorno.
+
+Verificado: con el rol de la aplicación se ve un solo tenant; con el propietario, dos.
