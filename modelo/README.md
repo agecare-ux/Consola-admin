@@ -62,7 +62,7 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
 - [x] Fase 2 · Tenant en el token, contexto por transacción y traducción de errores de la base
-- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 22 de 50 endpoints
+- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 30 de 50 endpoints
   - [x] Auth y staff (3.1–3.7), más `deps.py` y `audit.py`, que usan todos los routers
   - [x] Comercial (4) · Perfiles (2) · Funcionalidades (3). Periodos en la zona
         horaria del tenant; embudo desde `metrics_funnel_snapshot`; ventana de perfiles
@@ -70,7 +70,9 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
         `feature_adoption_low_threshold`
   - [x] Operativo e incidentes (6). Transiciones leídas de `incident_status_transitions`
         (un mantenimiento se completa, no se resuelve)
-  - [ ] Tickets y soporte (8)
+  - [x] Tickets y soporte (8). Transiciones, fechas, reaperturas, número correlativo y
+        primera respuesta los ponen los triggers; CSAT desde `support_csat_surveys`. Un
+        ticket previo solo identifica al usuario si estaba enlazado a su cuenta
   - [ ] Contenido (6) · Marketplace (5) · Moderación (3)
   - [ ] Configuración (2) · Legales (3) · Auditoría (1)
 - [ ] Fase 4 · Seed con tenants y catálogos
@@ -181,8 +183,6 @@ idempotente y solo reafirma la clave.
 canónico, el staff y el registro de auditoría viven en `admin`. Por eso, hasta
 migrar su router:
 
-- Asignar un ticket (`PATCH /support/tickets/{id}` con `assigned_to`) responde
-  `ASSIGNEE_NOT_FOUND`, porque busca al agente en `public`.
 - `GET /audit-log` no muestra las acciones nuevas, porque lee la tabla de `public`.
 
 **Secreto MFA.** El modelo pide guardar el secreto TOTP cifrado por la aplicación

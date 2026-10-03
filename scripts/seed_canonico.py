@@ -288,8 +288,15 @@ async def seed() -> None:
         await db.flush()
 
         # ---- Tickets ----
-        # number lo asigna el trigger trg_ticket_number desde admin.tenant_counters:
-        # no se pasa, se deja que el esquema lo ponga.
+        # Los tickets del seed llevan número explícito, igual que el prototipo y el
+        # wireframe (#1482 el más reciente). Al final se ajusta el correlativo para
+        # que los que cree la API sigan desde ahí (trg_ticket_number).
+        # requester_user_id: los tickets de canal app los abre un usuario con cuenta;
+        # se le da un id estable derivado del correo (referencia lógica a app.users).
+        def id_usuario(correo: str) -> uuid.UUID:
+            return uuid.uuid5(uuid.NAMESPACE_URL, f"agecare-app-user:{correo}")
+
+        NUMERO_MAS_RECIENTE = 1482
         tickets = []
         destacados = []
         for i, (asunto, cat, prio, estado, rol) in enumerate(D.subjects):
@@ -297,6 +304,7 @@ async def seed() -> None:
             cerrado = estado in ("resolved", "closed")
             t = M.Ticket(
                 tenant_id=TENANT, subject=asunto, description=f"Detalle del caso: {asunto}.",
+                number=NUMERO_MAS_RECIENTE - i, requester_user_id=id_usuario(f"usuario{i + 1}@demo.cl"),
                 requester_name=f"Usuario Demo {i + 1}", requester_email=f"usuario{i + 1}@demo.cl",
                 requester_role_code=rol, requester_plan_code=random.choice(["free", "gold", "platinum"]),
                 category_code=cat, priority=prio, status=estado, channel="app", created_at=creado,
@@ -323,6 +331,8 @@ async def seed() -> None:
             t = M.Ticket(
                 tenant_id=TENANT, subject=f"Caso histórico {j + 1}",
                 description="Ticket histórico de demo.",
+                number=NUMERO_MAS_RECIENTE - len(D.subjects) - j,
+                requester_user_id=id_usuario(f"hist{j}@demo.cl"),
                 requester_name="Usuario Demo", requester_email=f"hist{j}@demo.cl",
                 requester_role_code=random.choice(ROLE_ORDER),
                 category_code=D.CATS[j % len(D.CATS)],
@@ -337,6 +347,11 @@ async def seed() -> None:
             db.add(t)
             tickets.append(t)
         await db.flush()
+        await db.execute(text(
+            "INSERT INTO admin.tenant_counters (tenant_id, counter_name, next_value) "
+            "VALUES (:t, 'ticket_number', :n) ON CONFLICT (tenant_id, counter_name) "
+            "DO UPDATE SET next_value = EXCLUDED.next_value"),
+            {"t": str(TENANT), "n": NUMERO_MAS_RECIENTE + 1})
 
         # ---- Conversación y satisfacción ----
         CIERRES = ["Damos por resuelto el caso. Si vuelve a ocurrir, responde a este mismo ticket.",

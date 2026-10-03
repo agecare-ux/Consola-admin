@@ -1,12 +1,12 @@
-"""Secciones 6 (KPIs de soporte) y 8 — Tickets de soporte."""
+"""Secciones 6 (KPIs de soporte) y 8 — Tickets de soporte (esquema canónico)."""
 from datetime import timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request
 from sqlalchemy import func, select
 
-from app import models
-from app.audit import audit
+from app import models_canonico as M
+from app.audit import audit, tenant_de
 from app.deps import Db, require
 from app.enums import (CATEGORY_NAMES, AppRole, TicketCategory, TicketChannel, TicketPriority,
                        TicketStatus)
@@ -18,67 +18,85 @@ from app.schemas.support import (Assignee, ByCategoryOut, CategoryRow, Csat, Rep
 from app.security import now_utc
 
 router = APIRouter(prefix="/support", tags=["Soporte"])
+T, R, C = M.Ticket, M.TicketReply, M.SupportCsatSurveys
 
-# Las seis transiciones de la sección 8.4: "open → in_progress → waiting_user |
-# resolved; waiting_user → in_progress; resolved → closed o reapertura resolved →
-# in_progress". Coinciden una a una con admin.ticket_status_transitions del modelo
-# de datos, que además las impone por trigger. Un ticket abierto no salta a resuelto
-# sin pasar por en curso: siempre queda constancia de quién lo tomó.
-VALID_TRANSITIONS = {
-    TicketStatus.open: {TicketStatus.in_progress},
-    TicketStatus.in_progress: {TicketStatus.waiting_user, TicketStatus.resolved},
-    TicketStatus.waiting_user: {TicketStatus.in_progress},
-    TicketStatus.resolved: {TicketStatus.in_progress, TicketStatus.closed},  # reapertura o cierre
-    TicketStatus.closed: set(),
-}
+# La máquina de estados (8.4) vive en admin.ticket_status_transitions y la aplica el
+# trigger trg_transition, que además fija resolved_at / closed_at y cuenta las
+# reaperturas. La API consulta la misma tabla para responder el error de la spec.
+# first_response_at también lo fija un trigger, con la primera respuesta pública.
 
 
-def _ticket_out(t: models.Ticket) -> TicketOut:
+async def _transicion_valida(db, actual: str, destino: str) -> bool:
+    S = M.TicketStatusTransitions
+    return (await db.execute(select(S.from_status).where(
+        S.from_status == actual, S.to_status == destino))).first() is not None
+
+
+async def _nombres_agentes(db, tickets) -> dict:
+    """{admin_id: nombre} de los agentes asignados (una consulta para toda la página)."""
+    ids = {t.assigned_to for t in tickets if t.assigned_to}
+    if not ids:
+        return {}
+    return dict((await db.execute(select(M.AdminUser.id, M.AdminUser.full_name)
+                                  .where(M.AdminUser.id.in_(ids)))).all())
+
+
+def _ticket_out(t: M.Ticket, agentes: dict) -> TicketOut:
     return TicketOut(
         id=t.id, number=t.number, subject=t.subject,
         requester=Requester(user_id=t.requester_user_id, name=t.requester_name,
-                            role=AppRole(t.requester_role) if t.requester_role else None,
+                            role=AppRole(t.requester_role_code) if t.requester_role_code else None,
                             email=t.requester_email),
-        category=TicketCategory(t.category), priority=TicketPriority(t.priority),
+        category=TicketCategory(t.category_code), priority=TicketPriority(t.priority),
         status=TicketStatus(t.status),
-        assigned_to=Assignee(admin_id=t.assignee.id, name=t.assignee.full_name) if t.assignee else None,
+        assigned_to=Assignee(admin_id=t.assigned_to, name=agentes.get(t.assigned_to, ""))
+        if t.assigned_to else None,
         channel=TicketChannel(t.channel), created_at=t.created_at, updated_at=t.updated_at,
         first_response_at=t.first_response_at)
 
 
+def _reply_out(r: M.TicketReply) -> ReplyOut:
+    return ReplyOut(id=r.id, ticket_id=r.ticket_id, author_type=r.author_type,
+                    author_name=r.author_name, body=r.body, internal=r.is_internal,
+                    created_at=r.created_at)
+
+
 # ---------- 6.3 KPIs ----------
 @router.get("/summary", response_model=SupportSummaryOut, dependencies=[require("support")])
-async def support_summary(db: Db):
+async def support_summary(request: Request, db: Db):
+    tenant = tenant_de(request)
     now = now_utc()
     d30, d60 = now - timedelta(days=30), now - timedelta(days=60)
 
     async def count_status(status: TicketStatus) -> int:
-        return (await db.execute(select(func.count()).select_from(models.Ticket)
-                                 .where(models.Ticket.status == status))).scalar_one()
+        return (await db.execute(select(func.count()).select_from(T)
+                                 .where(T.tenant_id == tenant, T.status == status.value))).scalar_one()
 
-    resolved_30 = (await db.execute(select(func.count()).select_from(models.Ticket)
-                                    .where(models.Ticket.resolved_at >= d30))).scalar_one()
-    resolved_prev = (await db.execute(select(func.count()).select_from(models.Ticket)
-                                      .where(models.Ticket.resolved_at.between(d60, d30)))).scalar_one()
+    resolved_30 = (await db.execute(select(func.count()).select_from(T)
+                                    .where(T.tenant_id == tenant, T.resolved_at >= d30))).scalar_one()
+    resolved_prev = (await db.execute(select(func.count()).select_from(T)
+                                      .where(T.tenant_id == tenant,
+                                             T.resolved_at.between(d60, d30)))).scalar_one()
 
     async def avg_first_response(since, until) -> float | None:
-        rows = (await db.execute(select(models.Ticket.created_at, models.Ticket.first_response_at)
-                                 .where(models.Ticket.first_response_at.isnot(None),
-                                        models.Ticket.created_at.between(since, until)))).all()
-        if not rows:
-            return None
-        secs = [(fr - cr).total_seconds() for cr, fr in rows]
-        return round(sum(secs) / len(secs) / 3600, 1)
+        segundos = (await db.execute(
+            select(func.avg(func.extract("epoch", T.first_response_at - T.created_at)))
+            .where(T.tenant_id == tenant, T.first_response_at.isnot(None),
+                   T.created_at.between(since, until)))).scalar_one()
+        return round(float(segundos) / 3600, 1) if segundos is not None else None
 
     fr_now = await avg_first_response(d30, now)
     fr_prev = await avg_first_response(d60, d30)
 
-    csat_q = (await db.execute(select(func.avg(models.Ticket.csat_score),
-                                      func.count(models.Ticket.csat_score))
-                               .where(models.Ticket.csat_score.isnot(None),
-                                      models.Ticket.resolved_at >= d30))).one()
+    # CSAT: encuestas respondidas de tickets resueltos en los últimos 30 días.
+    csat_q = (await db.execute(select(func.avg(C.score), func.count(C.score))
+                               .join(T, T.id == C.ticket_id)
+                               .where(C.tenant_id == tenant, C.score.isnot(None),
+                                      T.resolved_at >= d30))).one()
     open_now = await count_status(TicketStatus.open)
-    week_ago_open = open_now - 6  # aproximación demo: el histórico real saldría de support_metrics_daily
+    # Aproximación de demo: el modelo no guarda cuántos tickets estaban abiertos hace
+    # una semana (support_metrics_daily registra flujos, no stock).
+    week_ago_open = open_now - 6
 
     return SupportSummaryOut(
         open=open_now,
@@ -97,12 +115,12 @@ async def support_summary(db: Db):
 
 # ---------- 6.4 Por categoría ----------
 @router.get("/tickets/by-category", response_model=ByCategoryOut, dependencies=[require("support")])
-async def by_category(db: Db, days: int = Query(default=30, ge=1, le=365)):
+async def by_category(request: Request, db: Db, days: int = Query(default=30, ge=1, le=365)):
     since = now_utc() - timedelta(days=days)
-    rows = (await db.execute(select(models.Ticket.category, func.count())
-                             .where(models.Ticket.created_at >= since)
-                             .group_by(models.Ticket.category)
-                             .order_by(func.count().desc()))).all()
+    rows = (await db.execute(select(T.category_code, func.count())
+                             .where(T.tenant_id == tenant_de(request), T.created_at >= since)
+                             .group_by(T.category_code)
+                             .order_by(func.count().desc(), T.category_code))).all()
     total = sum(c for _, c in rows)
     return ByCategoryOut(days=days, total=total,
                          categories=[CategoryRow(category=TicketCategory(cat),
@@ -113,7 +131,7 @@ async def by_category(db: Db, days: int = Query(default=30, ge=1, le=365)):
 
 # ---------- 8.1 Listar ----------
 @router.get("/tickets", response_model=Page[TicketOut], dependencies=[require("support")])
-async def list_tickets(db: Db,
+async def list_tickets(request: Request, db: Db,
                        status_f: TicketStatus | None = Query(default=None, alias="status"),
                        priority: TicketPriority | None = None,
                        category: TicketCategory | None = None,
@@ -123,42 +141,47 @@ async def list_tickets(db: Db,
                        order: str = Query(default="-created_at"),
                        page: int = Query(default=1, ge=1),
                        page_size: int = Query(default=25, ge=1, le=100)):
-    stmt = select(models.Ticket)
+    stmt = select(T).where(T.tenant_id == tenant_de(request))
     if status_f:
-        stmt = stmt.where(models.Ticket.status == status_f)
+        stmt = stmt.where(T.status == status_f.value)
     if priority:
-        stmt = stmt.where(models.Ticket.priority == priority)
+        stmt = stmt.where(T.priority == priority.value)
     if category:
-        stmt = stmt.where(models.Ticket.category == category)
+        stmt = stmt.where(T.category_code == category.value)
     if role:
-        stmt = stmt.where(models.Ticket.requester_role == role)
+        stmt = stmt.where(T.requester_role_code == role.value)
     if assigned_to:
-        stmt = stmt.where(models.Ticket.assigned_to == assigned_to)
+        stmt = stmt.where(T.assigned_to == assigned_to)
     if q:
         like = f"%{q.lstrip('#')}%"
-        cond = models.Ticket.subject.ilike(like) | models.Ticket.requester_email.ilike(like)
+        cond = T.subject.ilike(like) | T.requester_email.ilike(like)
         if q.lstrip("#").isdigit():
-            cond = cond | (models.Ticket.number == int(q.lstrip("#")))
+            cond = cond | (T.number == int(q.lstrip("#")))
         stmt = stmt.where(cond)
     field = order.lstrip("-")
-    col = {"created_at": models.Ticket.created_at, "updated_at": models.Ticket.updated_at,
-           "priority": models.Ticket.priority}.get(field, models.Ticket.created_at)
-    stmt = stmt.order_by(col.desc() if order.startswith("-") else col.asc())
+    col = {"created_at": T.created_at, "updated_at": T.updated_at,
+           "priority": T.priority}.get(field, T.created_at)
+    stmt = stmt.order_by(col.desc() if order.startswith("-") else col.asc(), T.number)
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     rows = (await db.execute(stmt.offset((page - 1) * page_size).limit(page_size))).scalars().all()
-    return Page(items=[_ticket_out(t) for t in rows], page=page, page_size=page_size, total=total)
+    agentes = await _nombres_agentes(db, rows)
+    return Page(items=[_ticket_out(t, agentes) for t in rows],
+                page=page, page_size=page_size, total=total)
 
 
-async def _get_ticket(db, ticket_id: str) -> models.Ticket:
+async def _get_ticket(db, request: Request, ticket_id: str) -> M.Ticket:
+    tenant = tenant_de(request)
     t = None
     raw = ticket_id.lstrip("#")
     if raw.isdigit():
-        t = (await db.execute(select(models.Ticket)
-                              .where(models.Ticket.number == int(raw)))).scalar_one_or_none()
+        t = (await db.execute(select(T).where(T.tenant_id == tenant, T.number == int(raw)))
+             ).scalar_one_or_none()
     else:
         try:
-            t = await db.get(models.Ticket, UUID(raw))
+            t = await db.get(T, UUID(raw))
         except ValueError:
+            t = None
+        if t is not None and t.tenant_id != tenant:
             t = None
     if t is None:
         raise not_found()
@@ -167,106 +190,106 @@ async def _get_ticket(db, ticket_id: str) -> models.Ticket:
 
 # ---------- 8.2 Detalle ----------
 @router.get("/tickets/{ticket_id}", response_model=TicketDetailOut, dependencies=[require("support")])
-async def ticket_detail(ticket_id: str, db: Db):
-    t = await _get_ticket(db, ticket_id)
-    replies = (await db.execute(select(func.count()).select_from(models.TicketReply)
-                                .where(models.TicketReply.ticket_id == t.id))).scalar_one()
-    base = _ticket_out(t).model_dump()
+async def ticket_detail(ticket_id: str, request: Request, db: Db):
+    t = await _get_ticket(db, request, ticket_id)
+    replies = (await db.execute(select(func.count()).select_from(R)
+                                .where(R.ticket_id == t.id))).scalar_one()
+    encuesta = (await db.execute(select(C).where(C.ticket_id == t.id))).scalar_one_or_none()
+    base = _ticket_out(t, await _nombres_agentes(db, [t])).model_dump()
     return TicketDetailOut(**base, description=t.description,
                            requester_context=t.requester_context, replies_count=replies,
-                           csat=Csat(score=t.csat_score, comment=t.csat_comment)
-                           if t.csat_score is not None else None)
+                           csat=Csat(score=encuesta.score, comment=encuesta.comment)
+                           if encuesta is not None and encuesta.score is not None else None)
 
 
 # ---------- 8.3 Crear ----------
 @router.post("/tickets", response_model=TicketOut, status_code=201)
 async def create_ticket(body: TicketCreateIn, request: Request, db: Db,
-                        admin: models.AdminUser = require("support", write=True)):
-    # En producción se buscaría en la tabla de usuarios de la app; aquí se enlaza
-    # contra los tickets previos del mismo correo como aproximación.
-    prev = (await db.execute(select(models.Ticket)
-                             .where(models.Ticket.requester_email == body.user_email.lower())
-                             .limit(1))).scalar_one_or_none()
+                        admin: M.AdminUser = require("support", write=True)):
+    tenant = tenant_de(request)
+    email = body.user_email.lower()
+    # La consola no tiene acceso a la tabla de usuarios de la app. Se reconoce al
+    # usuario por un ticket previo enlazado a su cuenta (requester_user_id); un ticket
+    # previo creado sin enlazar no prueba que la cuenta exista.
+    prev = (await db.execute(select(T).where(T.tenant_id == tenant, T.requester_email == email,
+                                             T.requester_user_id.isnot(None))
+                             .order_by(T.created_at.desc()).limit(1))).scalar_one_or_none()
     if prev is None and not body.confirm_unlinked:
         raise ApiError(404, "USER_NOT_FOUND",
                        "No existe ningún usuario con ese correo. Verifícalo o crea el ticket sin enlazar "
                        "(confirm_unlinked = true).")
-    next_number = ((await db.execute(select(func.max(models.Ticket.number)))).scalar_one() or 1000) + 1
-    t = models.Ticket(number=next_number, subject=body.subject, description=body.description,
-                      requester_user_id=prev.requester_user_id if prev else None,
-                      requester_name=prev.requester_name if prev else body.user_email.split("@")[0],
-                      requester_email=body.user_email.lower(),
-                      requester_role=prev.requester_role if prev else None,
-                      requester_plan=prev.requester_plan if prev else None,
-                      category=body.category, priority=body.priority,
-                      status=TicketStatus.open, channel=body.channel)
+    t = T(tenant_id=tenant, subject=body.subject, description=body.description,
+          requester_user_id=prev.requester_user_id if prev else None,
+          requester_name=prev.requester_name if prev else email.split("@")[0],
+          requester_email=email,
+          requester_role_code=prev.requester_role_code if prev else None,
+          requester_plan_code=prev.requester_plan_code if prev else None,
+          category_code=body.category.value, priority=body.priority.value,
+          status=TicketStatus.open.value, channel=body.channel.value,
+          created_by=admin.id)  # el número lo asigna el trigger (correlativo por tenant)
     db.add(t)
     await db.flush()
     await db.refresh(t)
     await audit(db, request, "ticket.create", "ticket", t.id, after={"number": t.number})
-    return _ticket_out(t)
+    return _ticket_out(t, {})
 
 
 # ---------- 8.4 Actualizar ----------
 @router.patch("/tickets/{ticket_id}", response_model=TicketOut)
 async def patch_ticket(ticket_id: str, body: TicketPatchIn, request: Request, db: Db,
-                       admin: models.AdminUser = require("support", write=True)):
-    t = await _get_ticket(db, ticket_id)
+                       admin: M.AdminUser = require("support", write=True)):
+    t = await _get_ticket(db, request, ticket_id)
     before = {"status": t.status, "priority": t.priority, "assigned_to": str(t.assigned_to)}
-    if body.status is not None:
-        current, target = TicketStatus(t.status), body.status
-        if target != current and target not in VALID_TRANSITIONS[current]:
+    if body.status is not None and body.status.value != t.status:
+        if not await _transicion_valida(db, t.status, body.status.value):
             msg = ("Transición de estado no permitida (p. ej. un ticket cerrado no puede reabrirse; "
                    "crea uno nuevo).")
             raise conflict("INVALID_TRANSITION", msg)
-        t.status = target
-        if target == TicketStatus.resolved:
-            t.resolved_at = now_utc()
-            # Aquí se enviaría la encuesta CSAT al usuario (push/correo).
+        t.status = body.status.value
+        # Aquí se enviaría la encuesta CSAT al usuario al resolver (push/correo).
     if body.priority is not None:
-        t.priority = body.priority
+        t.priority = body.priority.value
     if body.category is not None:
-        t.category = body.category
+        t.category_code = body.category.value
     if "assigned_to" in body.model_fields_set:
         if body.assigned_to is not None:
-            assignee = await db.get(models.AdminUser, body.assigned_to)
-            if assignee is None or not assignee.is_active:
+            agente = await db.get(M.AdminUser, body.assigned_to)
+            if (agente is None or agente.tenant_id != t.tenant_id or not agente.is_active
+                    or agente.password_hash is None):
                 raise ApiError(404, "ASSIGNEE_NOT_FOUND", "El agente indicado no existe o está desactivado.")
         t.assigned_to = body.assigned_to
     await db.flush()
-    await db.refresh(t)
+    await db.refresh(t)  # los triggers fijan fechas, reaperturas y updated_at
     await audit(db, request, "ticket.update", "ticket", t.id, before=before,
                 after={"status": t.status, "priority": t.priority, "assigned_to": str(t.assigned_to)})
-    return _ticket_out(t)
+    return _ticket_out(t, await _nombres_agentes(db, [t]))
 
 
 # ---------- 8.5 Responder ----------
 @router.post("/tickets/{ticket_id}/replies", response_model=ReplyOut, status_code=201)
 async def create_reply(ticket_id: str, body: ReplyCreateIn, request: Request, db: Db,
-                       admin: models.AdminUser = require("support", write=True)):
-    t = await _get_ticket(db, ticket_id)
-    if TicketStatus(t.status) == TicketStatus.closed:
+                       admin: M.AdminUser = require("support", write=True)):
+    t = await _get_ticket(db, request, ticket_id)
+    if t.status == TicketStatus.closed.value:
         raise conflict("TICKET_CLOSED", "El ticket está cerrado y no admite nuevas respuestas.")
-    reply = models.TicketReply(ticket_id=t.id, author_type="admin", author_id=admin.id,
-                               author_name=admin.full_name, body=body.body, internal=body.internal)
+    reply = R(tenant_id=t.tenant_id, ticket_id=t.id, author_type="admin", author_admin_id=admin.id,
+              author_name=admin.full_name, body=body.body, is_internal=body.internal)
     db.add(reply)
-    if not body.internal and t.first_response_at is None:
-        t.first_response_at = now_utc()  # KPI de primera respuesta (6.3)
-        # Aquí se notificaría al usuario por push y correo.
     await db.flush()
+    await db.refresh(reply)
+    # Aquí se notificaría al usuario por push y correo si la respuesta es pública.
     await audit(db, request, "ticket.reply", "ticket", t.id, after={"internal": body.internal})
-    return ReplyOut.model_validate(reply)
+    return _reply_out(reply)
 
 
 # ---------- 8.6 Conversación ----------
 @router.get("/tickets/{ticket_id}/replies", response_model=Page[ReplyOut], dependencies=[require("support")])
-async def list_replies(ticket_id: str, db: Db,
+async def list_replies(ticket_id: str, request: Request, db: Db,
                        page: int = Query(default=1, ge=1),
                        page_size: int = Query(default=25, ge=1, le=100)):
-    t = await _get_ticket(db, ticket_id)
-    stmt = select(models.TicketReply).where(models.TicketReply.ticket_id == t.id)
+    t = await _get_ticket(db, request, ticket_id)
+    stmt = select(R).where(R.ticket_id == t.id)
     total = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
-    rows = (await db.execute(stmt.order_by(models.TicketReply.created_at)
+    rows = (await db.execute(stmt.order_by(R.created_at, R.id)
                              .offset((page - 1) * page_size).limit(page_size))).scalars().all()
-    return Page(items=[ReplyOut.model_validate(r) for r in rows],
-                page=page, page_size=page_size, total=total)
+    return Page(items=[_reply_out(r) for r in rows], page=page, page_size=page_size, total=total)
