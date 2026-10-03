@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import AliasChoices, BaseModel, EmailStr, Field
 
 from app.enums import AdminRole
 
@@ -16,7 +16,8 @@ class AdminOut(BaseModel):
     id: UUID
     full_name: str
     email: EmailStr
-    role: AdminRole
+    # En el modelo la columna es role_code; la API la expone como role (spec 3).
+    role: AdminRole = Field(validation_alias=AliasChoices("role_code", "role"))
     mfa_enabled: bool
 
     model_config = {"from_attributes": True}

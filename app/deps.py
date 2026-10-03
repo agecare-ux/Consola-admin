@@ -4,12 +4,11 @@ from uuid import UUID
 
 import jwt
 from fastapi import Depends, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import app.compat  # noqa: F401  (fase 3: AdminUser.role -> role_code; se elimina al cerrar)
 from app import models_canonico as M
 from app.database import fijar_contexto, get_db
-from app.enums import READ, WRITE, AdminRole
 from app.errors import forbidden, unauthorized
 from app.security import decode_access_token
 
@@ -41,23 +40,27 @@ CurrentAdmin = Annotated[M.AdminUser, Depends(get_current_admin)]
 Db = Annotated[AsyncSession, Depends(get_db)]
 
 
-def require(module: str, write: bool = False):
-    """Factoría de dependencia: exige acceso de lectura o escritura sobre un módulo.
+async def permisos_del_rol(db: AsyncSession, role_code: str) -> dict[str, str]:
+    """{módulo: 'read' | 'write'} del rol, leído de admin.admin_role_permissions.
 
-    La matriz sigue en app/enums.py (READ/WRITE), validada por scripts/audit_roles.py.
-    Coincide con admin.admin_role_permissions; se pasará a leer de la base al migrar
-    el módulo de configuración.
+    La matriz de la spec (2.3) vive en la base; scripts/audit_roles.py comprueba que
+    la API la respete. 'write' incluye la lectura.
     """
-    allowed = WRITE.get(module, set()) if write else READ.get(module, set())
+    P = M.AdminRolePermissions
+    filas = await db.execute(select(P.module, P.access).where(P.role_code == role_code))
+    return dict(filas.all())
 
-    async def checker(admin: CurrentAdmin) -> M.AdminUser:
-        if AdminRole(admin.role_code) not in allowed:
+
+def require(module: str, write: bool = False):
+    """Factoría de dependencia: exige acceso de lectura o escritura sobre un módulo."""
+
+    async def checker(request: Request, admin: CurrentAdmin, db: Db) -> M.AdminUser:
+        permisos = getattr(request.state, "permisos", None)
+        if permisos is None:  # una consulta por petición, aunque haya varias comprobaciones
+            permisos = request.state.permisos = await permisos_del_rol(db, admin.role_code)
+        acceso = permisos.get(module)
+        if acceso is None or (write and acceso != "write"):
             raise forbidden()
         return admin
 
     return Depends(checker)
-
-
-def permissions_for(role: AdminRole) -> list[str]:
-    """Módulos accesibles (lectura) para un rol; alimenta el menú de la consola."""
-    return sorted(m for m, roles in READ.items() if role in roles)

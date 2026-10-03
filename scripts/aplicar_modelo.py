@@ -141,24 +141,37 @@ async def crear_rol_api(conn: asyncpg.Connection, usuario: str, clave: str) -> N
         f"THEN CREATE ROLE {usuario} LOGIN PASSWORD '{clave}' IN ROLE agecare_admin_api; "
         f"ELSE ALTER ROLE {usuario} LOGIN PASSWORD '{clave}'; END IF; END $$;")
     await conn.execute(f"GRANT agecare_admin_api TO {usuario}")
-    await conceder_transicion(conn)
+    await retirar_transicion(conn)
     print(f"  rol {usuario} listo (miembro de agecare_admin_api)")
     print(f"  apunta ADMIN_DATABASE_URL a ese usuario para que el aislamiento actúe")
 
 
-async def conceder_transicion(conn: asyncpg.Connection) -> None:
-    """Permisos TEMPORALES de agecare_admin_api sobre el esquema del prototipo.
+async def retirar_transicion(conn: asyncpg.Connection) -> None:
+    """Quita los permisos que la fase 3 dio a la API sobre el esquema del prototipo.
 
-    Durante la fase 3 conviven los dos esquemas: los routers ya migrados usan `admin`
-    y los que faltan siguen leyendo `public`. Sin esto, la API conectada con su rol
-    propio fallaría en todos los módulos aún no migrados. Se elimina al cerrar la
-    fase 3, cuando `public` queda vacío.
+    Desde el cierre de la fase 3 ningún router lee `public`: la API queda limitada al
+    esquema canónico. Es idempotente; en una base sin esos permisos no hace nada.
     """
     await conn.execute(
-        "GRANT USAGE ON SCHEMA public TO agecare_admin_api;"
-        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO agecare_admin_api;"
-        "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO agecare_admin_api;")
-    print("  permisos de transición sobre public concedidos (se retiran al cerrar la fase 3)")
+        "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM agecare_admin_api;"
+        "REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM agecare_admin_api;"
+        "REVOKE USAGE ON SCHEMA public FROM agecare_admin_api;")
+
+
+async def preparar_particiones(conn: asyncpg.Connection, meses: int = 12) -> str:
+    """Deja creadas las particiones mensuales de audit_log para el próximo año.
+
+    El DDL solo prepara el mes anterior, el actual y dos más; sin un job que corra
+    admin.partition_maintenance() cada mes, el registro de auditoría deja de aceptar
+    filas al acabarse y con él fallan el login y toda acción auditada. Volver a
+    ejecutar aplicar_modelo extiende el plazo. Devuelve el último mes cubierto.
+    """
+    await conn.execute(f"CALL admin.ensure_partitions('audit_log', 'month', {int(meses)})")
+    return await conn.fetchval(
+        "select to_char(max(to_date(substring(c.relname from '_p(\\d{6})$'), 'YYYYMM')), 'YYYY-MM') "
+        "from pg_inherits i join pg_class c on c.oid = i.inhrelid "
+        "join pg_class p on p.oid = i.inhparent join pg_namespace n on n.oid = p.relnamespace "
+        "where n.nspname = 'admin' and p.relname = 'audit_log'")
 
 
 async def principal(url: str, con_pruebas: bool, solo_pruebas: bool, rol_api: str | None = None) -> int:
@@ -182,6 +195,8 @@ async def principal(url: str, con_pruebas: bool, solo_pruebas: bool, rol_api: st
                 "where n.nspname = 'admin' and c.relkind in ('r','p') and not c.relispartition")
             politicas = await conn.fetchval("select count(*) from pg_policies where schemaname = 'admin'")
             print(f"  hecho: {tablas} tablas y {politicas} políticas de seguridad en el esquema admin")
+            hasta = await preparar_particiones(conn)
+            print(f"  registro de auditoría preparado hasta {hasta}")
 
         if rol_api:
             usuario, _, clave = rol_api.partition(":")

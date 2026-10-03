@@ -11,6 +11,7 @@ Solo ejecuta SELECT. Conviene usar la URL del propietario: con el rol de la API
 la seguridad por fila ocultaría filas y los conteos saldrían en cero.
 """
 import asyncio
+from datetime import date, timedelta
 import os
 import sys
 
@@ -49,8 +50,12 @@ async def main(url: str) -> int:
         logins_api = await conn.fetch(
             "select r.rolname from pg_roles r join pg_auth_members m on m.member = r.oid "
             "join pg_roles g on g.oid = m.roleid where g.rolname = 'agecare_admin_api' and r.rolcanlogin")
-        transicion = await contar(conn, "select has_schema_privilege('agecare_admin_api','public','USAGE')") \
-            if rol_grupo else None
+        # Último mes con partición de audit_log: sin partición, auditar falla y el login con él.
+        auditoria_hasta = await contar(conn, (
+            "select max(to_date(substring(c.relname from '_p(\\d{6})$'), 'YYYYMM')) "
+            "from pg_inherits i join pg_class c on c.oid = i.inhrelid "
+            "join pg_class p on p.oid = i.inhparent join pg_namespace n on n.oid = p.relnamespace "
+            "where n.nspname = 'admin' and p.relname = 'audit_log'")) if esquema else None
     finally:
         await conn.close()
 
@@ -66,17 +71,23 @@ async def main(url: str) -> int:
     linea(bool(tickets), f"Tickets en admin.support_tickets: {tickets}")
     linea(bool(logins_api), "Rol de login de la API: "
           + (", ".join(r["rolname"] for r in logins_api) if logins_api else "no existe"))
-    linea(bool(transicion), f"Permisos de transición sobre public: {'sí' if transicion else 'no'}")
+    # Margen mínimo: el mes siguiente debe existir ya.
+    proximo_mes = (date.today().replace(day=1) + timedelta(days=32)).replace(day=1)
+    auditoria_ok = auditoria_hasta is not None and auditoria_hasta >= proximo_mes
+    linea(auditoria_ok, "Registro de auditoría preparado hasta: "
+          + (auditoria_hasta.strftime("%Y-%m") if auditoria_hasta else "sin particiones"))
 
     print()
     if not esquema or tablas != ESPERADO_TABLAS:
         print("Falta el DDL:      python -m scripts.aplicar_modelo")
     if esquema and not staff:
         print("Falta el seed:     python -m scripts.seed_canonico")
-    if not logins_api or not transicion:
+    if esquema and not auditoria_ok:
+        print("Faltan meses de auditoría: python -m scripts.aplicar_modelo")
+    if not logins_api:
         print('Falta rol/permisos: python -m scripts.aplicar_modelo --rol-api "agecare_api:CLAVE"')
-    if esquema and tablas == ESPERADO_TABLAS and staff and logins_api and transicion:
-        print("La base está lista para la versión con auth migrada.")
+    if esquema and tablas == ESPERADO_TABLAS and staff and logins_api and auditoria_ok:
+        print("La base está lista para la API sobre el modelo canónico.")
     return 0
 
 

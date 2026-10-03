@@ -49,7 +49,6 @@ os.environ["ADMIN_DATABASE_URL"] = URL_TEST
 os.environ["ADMIN_JWT_SECRET"] = "secreto-de-test-suficientemente-largo-123456"
 
 import app.database as database  # noqa: E402
-from app.database import Base  # noqa: E402
 from app.main import app as fastapi_app  # noqa: E402
 
 
@@ -82,10 +81,8 @@ async def engine():
             returncode=1,
         )
 
-    # Esquema del prototipo (public) y canónico (admin): conviven durante la fase 3.
+    # La base de test solo tiene el esquema canónico (admin): ningún router usa public.
     propietario = create_async_engine(URL_TEST, poolclass=NullPool)
-    async with propietario.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     from scripts.aplicar_modelo import principal
     assert await principal(URL_TEST, False, False, rol_api=f"{ROL_API}:{CLAVE_API}") == 0
 
@@ -93,9 +90,7 @@ async def engine():
     # ejerce la seguridad por fila igual que en el despliegue.
     database._engine = propietario
     database._session_factory = async_sessionmaker(propietario, expire_on_commit=False)
-    from scripts.seed import seed
     from scripts.seed_canonico import seed as seed_canonico
-    await seed()
     await seed_canonico()
 
     eng = create_async_engine(URL_API, poolclass=NullPool)

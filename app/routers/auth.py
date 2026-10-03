@@ -9,7 +9,7 @@ from app import models_canonico as M
 from app.audit import audit, ip_de, tenant_de, user_agent_de
 from app.config import get_settings
 from app.database import fijar_contexto
-from app.deps import CurrentAdmin, Db, permissions_for, require
+from app.deps import CurrentAdmin, Db, permisos_del_rol, require
 from app.enums import AdminRole
 from app.errors import ApiError, conflict, invalid, not_found, unauthorized
 from app.schemas.auth import (AdminCreateIn, AdminCreateOut, AdminPatchIn, AdminUserOut,
@@ -197,11 +197,12 @@ async def logout(body: RefreshIn, request: Request, db: Db, admin: CurrentAdmin)
 
 # ---------- 3.4 Me ----------
 @router.get("/auth/me", response_model=MeOut)
-async def me(admin: CurrentAdmin):
-    rol = AdminRole(admin.role_code)
+async def me(admin: CurrentAdmin, db: Db):
+    # Módulos visibles en el menú: todos aquellos con acceso de lectura o escritura.
+    permisos = await permisos_del_rol(db, admin.role_code)
     return MeOut(id=admin.id, full_name=admin.full_name, email=admin.email,
-                 role=rol, mfa_enabled=admin.mfa_enabled,
-                 permissions=permissions_for(rol), last_login_at=admin.last_login_at)
+                 role=AdminRole(admin.role_code), mfa_enabled=admin.mfa_enabled,
+                 permissions=sorted(permisos), last_login_at=admin.last_login_at)
 
 
 # ---------- 3.5 Crear staff ----------

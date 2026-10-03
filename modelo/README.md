@@ -56,13 +56,14 @@ cuantas veces haga falta y no ensucian nada.
 
 ## Estado de la migración
 
-El código todavía corre sobre el esquema del prototipo (22 tablas, sin tenant).
+Desde el cierre de la fase 3, la API corre entera sobre el esquema canónico `admin`;
+el esquema del prototipo (`public`) ya no se usa.
 La sección 7 del documento enumera las diferencias y la 8 propone seis migraciones.
 
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
 - [x] Fase 2 · Tenant en el token, contexto por transacción y traducción de errores de la base
-- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 44 de 50 endpoints
+- [x] Fase 3 · Routers adaptados a los nombres nuevos — 50 de 50 endpoints
   - [x] Auth y staff (3.1–3.7), más `deps.py` y `audit.py`, que usan todos los routers
   - [x] Comercial (4) · Perfiles (2) · Funcionalidades (3). Periodos en la zona
         horaria del tenant; embudo desde `metrics_funnel_snapshot`; ventana de perfiles
@@ -76,7 +77,9 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
   - [x] Contenido (6) · Marketplace (5) · Moderación (3). Los nombres de quién creó,
         revisó o decidió se resuelven desde `admin_users` (`app/staff.py`); el filtro por
         especialidad se hace en la base, antes de paginar
-  - [ ] Configuración (2) · Legales (3) · Auditoría (1)
+  - [x] Configuración (2) · Legales (3) · Auditoría (1). Esquema y descripción de cada
+        parámetro desde `setting_definitions`; la matriz de permisos por rol se lee de
+        `admin_role_permissions` (ya no está duplicada en `enums.py`)
 - [ ] Fase 4 · Seed con tenants y catálogos
 - [ ] Fase 5 · Verificación contra las tres auditorías
 
@@ -166,26 +169,28 @@ una sentencia SQL y una variable de entorno.
 
 Verificado: con el rol de la aplicación se ve un solo tenant; con el propietario, dos.
 
-## Transición de la fase 3
+## Cierre de la fase 3
 
-Mientras haya routers sin migrar conviven los dos esquemas, y hay tres apoyos
-temporales que se retiran al cerrar la fase:
+Durante la migración convivieron los dos esquemas con tres apoyos temporales, ya
+retirados: la propiedad `role` de compatibilidad (`app/compat.py`), los permisos de la
+API sobre `public` y el doble seed de los tests. Hoy:
 
-| Apoyo temporal | Por qué existe | Cómo se retira |
-|---|---|---|
-| `app/compat.py` | Da a `AdminUser` una propiedad `role` (= `role_code`) para los schemas y los routers que aún leen el nombre viejo | Borrar el archivo y su import en `app/deps.py`; correr pytest y las dos auditorías |
-| Permisos de `agecare_admin_api` sobre `public` | Con el rol propio de la API, los routers sin migrar no podrían leer el prototipo | Desaparecen al eliminar la revisión 0001 y vaciar `public` |
-| Doble seed en los tests | `conftest.py` siembra el prototipo y el canónico | Quitar `scripts.seed` del fixture |
+- La suite y las dos auditorías corren con la API conectada como `agecare_api`, que
+  ya no tiene permisos sobre las tablas de `public`: si algún router volviera a leer
+  el prototipo, fallaría de inmediato.
+- `aplicar_modelo.py --rol-api` retira esos permisos en las bases donde se habían
+  concedido (es idempotente).
+- Las tablas del prototipo en `public` y la revisión Alembic `0001` siguen existiendo,
+  sin uso. Borrarlas queda como limpieza opcional, junto con `app/models.py` y
+  `scripts/seed.py`.
 
-Los permisos de transición los concede `aplicar_modelo.py --rol-api`. Si el rol se
-creó antes de este cambio, basta con volver a ejecutar ese mismo comando: es
-idempotente y solo reafirma la clave.
-
-**Efectos conocidos hasta migrar su módulo.** Desde que auth usa el esquema
-canónico, el staff y el registro de auditoría viven en `admin`. Por eso, hasta
-migrar su router:
-
-- `GET /audit-log` no muestra las acciones nuevas, porque lee la tabla de `public`.
+**Particiones del registro de auditoría.** `audit_log` está particionada por mes y una
+fila sin partición hace fallar la escritura (y con ella el login). El DDL solo prepara
+hasta dos meses adelante y no hay un job que corra `admin.partition_maintenance()`.
+Como solución de MVP, `aplicar_modelo.py` deja creadas las particiones de los
+próximos 12 meses cada vez que se ejecuta; `verificar_base.py` muestra hasta qué mes
+está cubierto y avisa si no llega al mes siguiente. Basta con volver a ejecutar
+`aplicar_modelo.py` una vez al año (o programar el job, fuera de alcance).
 
 **Secreto MFA.** El modelo pide guardar el secreto TOTP cifrado por la aplicación
 con Key Vault (`mfa_secret_enc`). Eso pertenece al despliegue en Azure, fuera del

@@ -155,26 +155,5 @@ COMPONENT_NAMES = {
 }
 
 # Matriz de permisos por módulo (sección 2.3): módulo -> roles con acceso de lectura/escritura
-READ = {"metrics": {AdminRole.admin, AdminRole.analyst, AdminRole.support},
-        "ops": {AdminRole.admin, AdminRole.analyst, AdminRole.support},
-        "support": {AdminRole.admin, AdminRole.analyst, AdminRole.support},
-        "content": {AdminRole.admin, AdminRole.editor},
-        "marketplace": {AdminRole.admin, AdminRole.editor, AdminRole.moderator},
-        "moderation": {AdminRole.admin, AdminRole.moderator},
-        "settings": {AdminRole.admin},
-        "legal": {AdminRole.admin},
-        "staff": {AdminRole.admin},
-        "audit": {AdminRole.admin}}
-WRITE = {"ops": {AdminRole.admin, AdminRole.support},
-         "support": {AdminRole.admin, AdminRole.support},
-         "content": {AdminRole.admin, AdminRole.editor},
-         "marketplace": {AdminRole.admin, AdminRole.editor},
-         "moderation": {AdminRole.admin, AdminRole.moderator},
-         "settings": {AdminRole.admin},
-         "legal": {AdminRole.admin},
-         "staff": {AdminRole.admin},
-         # El modelo canónico (admin_role_permissions) da al admin acceso de escritura
-         # sobre auditoría. Hoy no existe ningún endpoint que escriba en el registro
-         # —lo alimenta el propio sistema y es inmutable—, pero la matriz se mantiene
-         # literal para que en la fase 1 pueda cargarse directamente de la tabla.
-         "audit": {AdminRole.admin}}
+# La matriz de permisos por rol (spec 2.3) vive en admin.admin_role_permissions y la
+# lee app/deps.py en cada petición. scripts/audit_roles.py la contrasta con la spec.
