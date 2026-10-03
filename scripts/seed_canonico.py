@@ -142,7 +142,10 @@ async def seed() -> None:
                 published_at=NOW - timedelta(days=95)))
 
         # ---- Métricas diarias (misma simulación que el seed del prototipo) ----
-        activos, pagan = 7400.0, 300.0
+        # Base de usuarios que ya existía antes de la ventana simulada. Cuenta en el
+        # embudo: sin ella, "cuentas creadas" quedaba por debajo de "activos 30 días".
+        BASE_CUENTAS = 7400
+        activos, pagan = float(BASE_CUENTAS), 300.0
         inicio = TODAY - timedelta(days=425)
         dias = []
         for i in range(426):
@@ -179,8 +182,10 @@ async def seed() -> None:
                                          monthly_churn=churn))
         db.add(M.MetricsFunnelSnapshot(
             tenant_id=TENANT, as_of=TODAY,
-            downloads_total=sum(d[3] for d in dias),
-            accounts_total=sum(d[1] for d in dias),
+            # La base previa también descargó la app (≈2 descargas por cuenta, como
+            # en la simulación diaria).
+            downloads_total=2 * BASE_CUENTAS + sum(d[3] for d in dias),
+            accounts_total=BASE_CUENTAS + sum(d[1] for d in dias),
             active_30d=activos_fin, paying=pagan_fin))
 
         # ---- Perfiles ----

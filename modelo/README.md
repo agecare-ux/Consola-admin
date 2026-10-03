@@ -62,9 +62,12 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
 - [x] Fase 2 · Tenant en el token, contexto por transacción y traducción de errores de la base
-- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 7 de 50 endpoints
+- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 16 de 50 endpoints
   - [x] Auth y staff (3.1–3.7), más `deps.py` y `audit.py`, que usan todos los routers
-  - [ ] Comercial (4) · Perfiles (2) · Funcionalidades (3)
+  - [x] Comercial (4) · Perfiles (2) · Funcionalidades (3). Periodos en la zona
+        horaria del tenant; embudo desde `metrics_funnel_snapshot`; ventana de perfiles
+        = la menor precalculada que cubra lo pedido; umbral de alertas por defecto desde
+        `feature_adoption_low_threshold`
   - [ ] Operativo e incidentes (6)
   - [ ] Tickets y soporte (8)
   - [ ] Contenido (6) · Marketplace (5) · Moderación (3)

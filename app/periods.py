@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import select
+
 from app.config import get_settings
 from app.enums import PeriodKey
 
@@ -31,6 +33,21 @@ class Period:
 def business_today() -> date:
     tz = ZoneInfo(get_settings().business_timezone)
     return datetime.now(tz).date()
+
+
+async def zona_del_tenant(db, tenant_id) -> ZoneInfo:
+    """Zona horaria de negocio del tenant (admin.tenants.timezone).
+
+    Los días de las métricas se cortan en la hora local del tenant, no en UTC. Si el
+    tenant no la tiene o el nombre no es válido, se usa la de la configuración.
+    """
+    from app import models_canonico as M  # import local: evita un ciclo al arrancar
+    nombre = (await db.execute(select(M.Tenants.timezone)
+                               .where(M.Tenants.id == tenant_id))).scalar_one_or_none()
+    try:
+        return ZoneInfo(nombre or get_settings().business_timezone)
+    except (KeyError, ValueError):
+        return ZoneInfo(get_settings().business_timezone)
 
 
 def resolve(key: PeriodKey, today: date | None = None) -> Period:
