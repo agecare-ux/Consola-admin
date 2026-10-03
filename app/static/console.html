@@ -321,7 +321,32 @@
   .inline-msg.on{display:block}
   .inline-msg.err{background:var(--crit-bg);color:var(--crit-ink)}
   .inline-msg.ok{background:var(--ok-bg);color:var(--ok-ink)}
+  .inline-msg.warn{background:var(--warn-bg);color:var(--ink)}
   .empty{text-align:center;padding:36px 20px;color:var(--ink-faint);font-size:13px}
+
+  /* ============ CONTENIDO · CATÁLOGOS · MODERACIÓN ============ */
+  .btn-danger{background:none;color:var(--crit);border:1px solid var(--line-strong)}
+  .btn-danger:hover{background:var(--crit-bg);color:var(--crit)}
+  .modal-foot .izq{margin-right:auto}
+  .hint{font-size:11.5px;color:var(--ink-faint);margin-top:5px}
+  .tags{display:flex;flex-wrap:wrap;gap:4px}
+  .tag{font-size:11px;color:var(--ink-soft);background:var(--sunken);border-radius:999px;padding:2px 8px}
+  .ficha{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 18px;margin:4px 0 6px;
+    padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .ficha dt{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint)}
+  .ficha dd{font-size:13px;margin-top:3px}
+  .mod-list{display:flex;flex-direction:column;gap:12px}
+  .mod-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .mod-item.seguridad{border-left:4px solid var(--crit)}
+  .mod-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--ink-soft)}
+  .mod-h b{color:var(--ink);font-size:13px}
+  .mod-cuerpo{font-size:13.5px;line-height:1.6;margin:10px 0;white-space:pre-wrap}
+  .mod-reporte{font-size:12.5px;background:var(--warn-bg);border-radius:var(--radius-m);padding:8px 11px;margin-bottom:10px}
+  .mod-acciones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:12px}
+  .mod-acciones select,.mod-acciones input{font-family:inherit;font-size:12.5px;color:var(--ink);
+    border:1px solid var(--line-strong);border-radius:var(--radius-m);padding:7px 10px;background:#fff}
+  .mod-acciones input{flex:1;min-width:180px}
+  .estrellas{color:var(--gold);letter-spacing:1px}
 
 </style>
 </head>
@@ -375,9 +400,9 @@
     <button class="nav-item" data-view="funcional" data-perm="metrics"><span class="ico">🧩</span>Uso por funcionalidad</button>
     <div class="nav-group">Operación</div>
     <button class="nav-item" data-view="tickets" data-perm="support"><span class="ico">🎫</span>Tickets de soporte</button>
-    <button class="nav-item" data-view="ph-contenido" data-perm="content"><span class="ico">📰</span>Curación de contenido<span class="soon">v1</span></button>
-    <button class="nav-item" data-view="ph-catalogos" data-perm="marketplace"><span class="ico">🛍️</span>Catálogos marketplace<span class="soon">v1</span></button>
-    <button class="nav-item" data-view="ph-moderacion" data-perm="moderation"><span class="ico">🛡️</span>Moderación<span class="soon">v1</span></button>
+    <button class="nav-item" data-view="contenido" data-perm="content"><span class="ico">📰</span>Curación de contenido</button>
+    <button class="nav-item" data-view="catalogos" data-perm="marketplace"><span class="ico">🛍️</span>Catálogos marketplace</button>
+    <button class="nav-item" data-view="moderacion" data-perm="moderation"><span class="ico">🛡️</span>Moderación</button>
     <div class="nav-group">Sistema</div>
     <button class="nav-item" data-view="ph-config" data-perm="settings"><span class="ico">⚙️</span>Configuración<span class="soon">v1</span></button>
     <button class="nav-item" data-view="ph-legales" data-perm="legal"><span class="ico">📜</span>Legales y privacidad<span class="soon">v1</span></button>
@@ -689,6 +714,111 @@
   </div>
 </section>
 
+<!-- ============ CURACIÓN DE CONTENIDO (sección 9) ============ -->
+<section class="view" id="view-contenido">
+  <div id="err-contenido"></div>
+  <div class="tk-bar">
+    <input type="search" id="ct-q" placeholder="Buscar en título o texto">
+    <select id="ct-type"></select>
+    <select id="ct-status"></select>
+    <div class="tk-spacer"></div>
+    <button class="btn-sm" id="ct-new">Nuevo contenido</button>
+  </div>
+  <div class="card">
+    <table class="data" id="ct-table">
+      <thead><tr>
+        <th>Título</th><th>Tipo</th><th>Etiquetas</th><th>Audio</th><th>Estado</th>
+        <th>Autor</th><th class="num">Actualizado</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="ct-empty" class="empty" hidden>No hay contenido con estos filtros. Crea uno nuevo para el feed.</div>
+    <div class="pager">
+      <button class="btn-sm btn-ghost" id="ct-prev">Anterior</button>
+      <button class="btn-sm btn-ghost" id="ct-next">Siguiente</button>
+      <span id="ct-range"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CATÁLOGOS DEL MARKETPLACE (sección 10) ============ -->
+<section class="view" id="view-catalogos">
+  <div id="err-catalogos"></div>
+  <div class="tk-bar">
+    <div class="seg" id="mk-tabs">
+      <button class="on" data-tab="cuidadoras">Cuidadoras</button>
+      <button data-tab="productos">Artículos</button>
+    </div>
+  </div>
+
+  <div id="mk-cuidadoras">
+    <div class="tk-bar">
+      <input type="search" id="cg-q" placeholder="Buscar por nombre o correo">
+      <select id="cg-status"></select>
+      <input type="text" id="cg-zone" placeholder="Zona">
+      <input type="text" id="cg-specialty" placeholder="Especialidad">
+    </div>
+    <div class="card">
+      <table class="data" id="cg-table">
+        <thead><tr>
+          <th>Cuidadora</th><th>Zona</th><th>Especialidades</th><th class="num">Cert. verificadas</th>
+          <th class="num">Valoración</th><th>Estado</th><th class="num">Postuló</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="cg-empty" class="empty" hidden>Ninguna cuidadora coincide con los filtros.</div>
+      <div class="pager">
+        <button class="btn-sm btn-ghost" id="cg-prev">Anterior</button>
+        <button class="btn-sm btn-ghost" id="cg-next">Siguiente</button>
+        <span id="cg-range"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="mk-productos" hidden>
+    <div class="tk-bar">
+      <input type="search" id="pr-q" placeholder="Buscar por nombre o proveedor">
+      <input type="text" id="pr-category" placeholder="Categoría">
+      <select id="pr-status"></select>
+      <div class="tk-spacer"></div>
+      <button class="btn-sm" id="pr-new">Nuevo artículo</button>
+    </div>
+    <div class="card">
+      <table class="data" id="pr-table">
+        <thead><tr>
+          <th>Artículo</th><th>Categoría</th><th>Proveedor</th><th class="num">Precio</th>
+          <th>Estado</th><th class="num">Actualizado</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="pr-empty" class="empty" hidden>No hay artículos con estos filtros. Agrega uno al catálogo.</div>
+      <div class="pager">
+        <button class="btn-sm btn-ghost" id="pr-prev">Anterior</button>
+        <button class="btn-sm btn-ghost" id="pr-next">Siguiente</button>
+        <span id="pr-range"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODERACIÓN (sección 11) ============ -->
+<section class="view" id="view-moderacion">
+  <div id="err-moderacion"></div>
+  <div class="tk-bar">
+    <select id="md-status"></select>
+    <select id="md-type"></select>
+    <div class="tk-spacer"></div>
+    <span class="hint" style="margin:0">Los reportes de seguridad aparecen primero.</span>
+  </div>
+  <div class="mod-list" id="md-list"></div>
+  <div id="md-empty" class="empty" hidden>La cola está al día: no hay elementos en este estado.</div>
+  <div class="pager">
+    <button class="btn-sm btn-ghost" id="md-prev">Anterior</button>
+    <button class="btn-sm btn-ghost" id="md-next">Siguiente</button>
+    <span id="md-range"></span>
+  </div>
+</section>
+
 <!-- ============ PLACEHOLDER ============ -->
 <section class="view" id="view-placeholder">
   <div class="placeholder-box">
@@ -722,6 +852,79 @@
     <div class="modal-foot">
       <button class="btn-sm btn-ghost" id="n-cancel">Cancelar</button>
       <button class="btn-sm" id="n-create">Crear ticket</button>
+    </div>
+  </div>
+</div>
+<!-- ============ CONTENIDO: CREAR / EDITAR ============ -->
+<div class="modal" id="m-contenido" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="mc-titulo-h">
+    <h3 id="mc-titulo-h">Nuevo contenido</h3>
+    <div class="sub" id="mc-sub">Chistes y noticias del feed del adulto mayor. Se leen en voz alta.</div>
+    <div class="modal-row">
+      <div><label for="mc-type">Tipo</label><select id="mc-type"></select></div>
+      <div><label for="mc-publish-at">Publicación programada (opcional)</label>
+        <input id="mc-publish-at" type="datetime-local"></div>
+    </div>
+    <label for="mc-title">Título</label>
+    <input id="mc-title" type="text" maxlength="160">
+    <label for="mc-body">Texto</label>
+    <textarea id="mc-body" maxlength="4000"></textarea>
+    <label for="mc-tags">Etiquetas</label>
+    <input id="mc-tags" type="text" placeholder="humor, invierno, salud">
+    <div class="hint">Separadas por comas, hasta 10.</div>
+    <div class="inline-msg" id="mc-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-danger izq" id="mc-delete" hidden>Eliminar</button>
+      <button class="btn-sm btn-ghost" id="mc-cancel">Cancelar</button>
+      <button class="btn-sm btn-ghost" id="mc-toggle" hidden>Publicar</button>
+      <button class="btn-sm" id="mc-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CUIDADORA: REVISIÓN ============ -->
+<div class="modal" id="m-cuidadora" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="mg-nombre">
+    <h3 id="mg-nombre"></h3>
+    <div class="sub" id="mg-sub"></div>
+    <dl class="ficha" id="mg-ficha"></dl>
+    <label for="mg-reason">Motivo (obligatorio para suspender, se envía a la cuidadora)</label>
+    <textarea id="mg-reason" maxlength="1000" style="min-height:70px"></textarea>
+    <label for="mg-note">Nota interna (solo la ve el equipo)</label>
+    <textarea id="mg-note" maxlength="2000" style="min-height:70px"></textarea>
+    <div class="inline-msg" id="mg-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-danger izq" id="mg-suspend">Suspender</button>
+      <button class="btn-sm btn-ghost" id="mg-cancel">Cerrar</button>
+      <button class="btn-sm btn-ghost" id="mg-save-note">Guardar nota</button>
+      <button class="btn-sm" id="mg-approve">Aprobar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ARTÍCULO: CREAR / EDITAR ============ -->
+<div class="modal" id="m-producto" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="mp-titulo-h">
+    <h3 id="mp-titulo-h">Nuevo artículo</h3>
+    <div class="sub">Productos recomendados. La compra se hace en la tienda del proveedor.</div>
+    <label for="mp-name">Nombre</label>
+    <input id="mp-name" type="text" maxlength="160">
+    <div class="modal-row">
+      <div><label for="mp-category">Categoría</label><input id="mp-category" type="text" maxlength="60"></div>
+      <div><label for="mp-vendor">Proveedor</label><input id="mp-vendor" type="text" maxlength="120"></div>
+    </div>
+    <div class="modal-row">
+      <div><label for="mp-price">Precio (CLP, opcional)</label><input id="mp-price" type="number" min="0" step="1"></div>
+      <div><label for="mp-status">Estado</label><select id="mp-status"></select></div>
+    </div>
+    <label for="mp-url">Enlace a la tienda</label>
+    <input id="mp-url" type="url" placeholder="https://">
+    <label for="mp-image">Imagen (opcional)</label>
+    <input id="mp-image" type="url" placeholder="https://">
+    <div class="inline-msg" id="mp-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-ghost" id="mp-cancel">Cancelar</button>
+      <button class="btn-sm" id="mp-save">Guardar</button>
     </div>
   </div>
 </div>
@@ -805,6 +1008,7 @@ async function api(path, {method = 'GET', body = null, retry = true} = {}) {
     } catch (_) { /* respuesta sin cuerpo JSON */ }
     throw new ApiError(res.status, code, msg, rid);
   }
+  if (res.status === 204) return null;   // p. ej. DELETE de contenido (9.6)
   return res.json();
 }
 
@@ -1152,14 +1356,16 @@ const VIEW_META = {
   usuarios:  ['Usuarios y soporte', 'Analítica · Estadísticas por perfil y tickets de soporte'],
   funcional: ['Uso por funcionalidad', 'Analítica · Adopción de funciones por rol'],
   tickets:   ['Tickets de soporte', 'Operación · Cola de soporte y conversación con el usuario'],
+  contenido: ['Curación de contenido', 'Operación · Chistes y noticias del feed del adulto mayor'],
+  catalogos: ['Catálogos del marketplace', 'Operación · Cuidadoras y artículos recomendados'],
+  moderacion: ['Moderación', 'Operación · Reseñas, fotos, perfiles y mensajes reportados'],
 };
 const PH_META = {
-  'ph-contenido': ['📰', 'Curación de contenido'],
-  'ph-catalogos': ['🛍️', 'Catálogos del marketplace'], 'ph-moderacion': ['🛡️', 'Moderación'],
   'ph-config': ['⚙️', 'Configuración del sistema'], 'ph-legales': ['📜', 'Legales y privacidad'],
 };
 const LOADERS = {comercial: null, operativo: loadOperativo, usuarios: loadUsuarios,
-                 funcional: loadFuncional, tickets: loadTickets};
+                 funcional: loadFuncional, tickets: loadTickets, contenido: loadContenido,
+                 catalogos: loadCatalogos, moderacion: loadModeracion};
 const loaded = {};
 
 document.querySelectorAll('.nav-item').forEach(btn => {
@@ -1899,6 +2105,508 @@ function initTickets() {
 }
 
 /* ================================================================
+   CONTENIDO, CATÁLOGOS Y MODERACIÓN (secciones 9, 10 y 11)
+================================================================ */
+/* /auth/me entrega los módulos visibles, no el nivel de acceso: igual que en
+   tickets, la escritura se deduce del rol (matriz 2.3). La API lo vuelve a
+   comprobar y responde 403 si no corresponde. */
+const ESCRIBE = {content: ['admin', 'editor'], marketplace: ['admin', 'editor'],
+                 moderation: ['admin', 'moderator']};
+const puede = modulo => !!yo && (ESCRIBE[modulo] || []).includes(yo.role);
+
+const CT_TIPO   = {joke: 'Chiste', news: 'Noticia'};
+const CT_ESTADO = {draft: 'Borrador', published: 'Publicado', archived: 'Retirado'};
+const CT_CHIP   = {draft: ['neutral', '● Borrador'], published: ['ok', '✔ Publicado'],
+                   archived: ['neutral', '■ Retirado']};
+const CG_ESTADO = {pending: 'Pendientes', approved: 'Aprobadas', suspended: 'Suspendidas'};
+const CG_CHIP   = {pending: ['warn', '⏳ Pendiente'], approved: ['ok', '✔ Aprobada'],
+                   suspended: ['crit', '✖ Suspendida']};
+const PR_ESTADO = {draft: 'Borrador', published: 'Publicado', archived: 'Archivado'};
+const PR_CHIP   = {draft: ['neutral', '● Borrador'], published: ['ok', '✔ Publicado'],
+                   archived: ['neutral', '■ Archivado']};
+const MD_TIPO   = {review: 'Reseña', caregiver_profile: 'Perfil de cuidadora', photo: 'Foto',
+                   chat_message: 'Mensaje de chat'};
+const MD_ESTADO = {pending: 'Pendientes', approved: 'Aprobados', rejected: 'Rechazados'};
+const MD_CHIP   = {pending: ['warn', '⏳ Pendiente'], approved: ['ok', '✔ Aprobado'],
+                   rejected: ['crit', '✖ Rechazado']};
+const MOTIVO    = {offensive: 'Ofensivo', spam: 'Spam', privacy: 'Expone datos personales',
+                   off_topic: 'Fuera de tema', other: 'Otro (detállalo en la nota)'};
+
+/* ---------- utilidades compartidas ---------- */
+function paginar(pref, d) {
+  const desde = d.total ? (d.page - 1) * d.page_size + 1 : 0;
+  $(`#${pref}-range`).textContent = `${desde}–${Math.min(d.page * d.page_size, d.total)} de ${fmt(d.total)}`;
+  $(`#${pref}-prev`).disabled = d.page <= 1;
+  $(`#${pref}-next`).disabled = d.page * d.page_size >= d.total;
+}
+function enlazarPaginas(pref, pag, cargar) {
+  $(`#${pref}-prev`).addEventListener('click', () => { pag.page--; cargar(); });
+  $(`#${pref}-next`).addEventListener('click', () => { pag.page++; cargar(); });
+}
+function alFiltrar(ids, pag, cargar) {
+  ids.forEach(id => {
+    const el = $('#' + id);
+    let t0;
+    const lanzar = () => { pag.page = 1; cargar(); };
+    if (el.tagName === 'SELECT') el.addEventListener('change', lanzar);
+    else el.addEventListener('input', () => { clearTimeout(t0); t0 = setTimeout(lanzar, 350); });
+  });
+}
+function filtros(pag, pares) {
+  const p = new URLSearchParams({page: pag.page, page_size: pag.pageSize});
+  for (const [id, campo] of pares) {
+    const v = $('#' + id).value.trim();
+    if (v) p.set(campo, v);
+  }
+  return p.toString();
+}
+async function conBoton(btn, texto, fn) {
+  const antes = btn.textContent;
+  btn.disabled = true; btn.textContent = texto;
+  try { return await fn(); } finally { btn.disabled = false; btn.textContent = antes; }
+}
+function etiquetas(lista) {
+  if (!lista || !lista.length) return document.createTextNode('—');
+  const w = document.createElement('div'); w.className = 'tags';
+  lista.forEach(t => { const s = document.createElement('span'); s.className = 'tag'; s.textContent = t; w.appendChild(s); });
+  return w;
+}
+function fichaDl(dl, pares) {
+  dl.textContent = '';
+  pares.forEach(([k, v]) => {
+    const w = document.createElement('div');
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd');
+    if (v instanceof Node) dd.appendChild(v); else dd.textContent = v;
+    w.append(dt, dd); dl.appendChild(w);
+  });
+}
+const cerrar = id => { $('#' + id).hidden = true; };
+// datetime-local trabaja en hora local sin zona; la API espera ISO con zona.
+function aInputLocal(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+const desdeInputLocal = v => v ? new Date(v).toISOString() : null;
+const estrellas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+function fallo(el, e) { if (e.status !== 401) aviso(el, e.message, 'err'); }
+
+/* ---------- 9 · contenido ---------- */
+const ctPag = {page: 1, pageSize: 25};
+let ctActual = null;
+
+async function loadContenido() {
+  clearError('err-contenido');
+  try {
+    const d = await api('/content/items?' + filtros(ctPag, [['ct-q', 'q'], ['ct-type', 'type'], ['ct-status', 'status']]));
+    const tb = $('#ct-table tbody');
+    tb.textContent = '';
+    d.items.forEach(it => {
+      const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', () => abrirContenido(it));
+      const titulo = td(it.title); titulo.style.fontWeight = '700';
+      tr.append(titulo, td(CT_TIPO[it.type] || it.type), tdNode(etiquetas(it.tags)),
+                tdNode(chip({true: ['ok', '✔ Listo'], false: ['warn', '⏳ Generando']}, String(it.audio_available))),
+                tdNode(chip(CT_CHIP, it.status)), td(it.created_by_name || '—'),
+                td(fechaCorta(it.updated_at), 'num'));
+      tb.appendChild(tr);
+    });
+    $('#ct-empty').hidden = d.items.length > 0;
+    paginar('ct', d);
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-contenido', e);
+  }
+}
+
+function abrirContenido(it) {
+  ctActual = it || null;
+  const escribe = puede('content');
+  $('#mc-titulo-h').textContent = it ? (escribe ? 'Editar contenido' : 'Contenido') : 'Nuevo contenido';
+  $('#mc-type').value = it ? it.type : 'joke';
+  $('#mc-type').disabled = !!it;   // el tipo no se cambia después de crear (spec 9.3)
+  $('#mc-title').value = it ? it.title : '';
+  $('#mc-body').value = it ? it.body : '';
+  $('#mc-tags').value = it ? (it.tags || []).join(', ') : '';
+  $('#mc-publish-at').value = it ? aInputLocal(it.publish_at) : '';
+  ['mc-title', 'mc-body', 'mc-tags', 'mc-publish-at'].forEach(id => { $('#' + id).disabled = !escribe; });
+  $('#mc-sub').textContent = it && it.status === 'published'
+    ? `Publicado el ${fechaHora(it.published_at)}. Al guardar cambios en el texto se regenera el audio.`
+    : 'Chistes y noticias del feed del adulto mayor. Se leen en voz alta.';
+  $('#mc-save').hidden = !escribe;
+  $('#mc-delete').hidden = !(escribe && it && it.status !== 'published');
+  $('#mc-toggle').hidden = !(escribe && it);
+  if (it) $('#mc-toggle').textContent = it.status === 'published' ? 'Retirar del feed' : 'Publicar ahora';
+  $('#mc-msg').classList.remove('on');
+  $('#m-contenido').hidden = false;
+  $('#mc-title').focus();
+}
+
+async function guardarContenido() {
+  const titulo = $('#mc-title').value.trim(), texto = $('#mc-body').value.trim();
+  const tags = $('#mc-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  if (titulo.length < 3 || texto.length < 10) {
+    aviso($('#mc-msg'), 'El título necesita al menos 3 caracteres y el texto al menos 10.', 'err'); return;
+  }
+  if (tags.length > 10) { aviso($('#mc-msg'), 'Usa como máximo 10 etiquetas.', 'err'); return; }
+  const cuerpo = {title: titulo, body: texto, tags};
+  const programada = desdeInputLocal($('#mc-publish-at').value);
+  if (programada) cuerpo.publish_at = programada;
+  await conBoton($('#mc-save'), 'Guardando…', async () => {
+    try {
+      if (ctActual) await api(`/content/items/${ctActual.id}`, {method: 'PATCH', body: cuerpo});
+      else await api('/content/items', {method: 'POST', body: {...cuerpo, type: $('#mc-type').value}});
+      cerrar('m-contenido');
+      loadContenido();
+    } catch (e) { fallo($('#mc-msg'), e); }
+  });
+}
+
+function initContenido() {
+  opciones($('#ct-type'), CT_TIPO, 'Todos los tipos');
+  opciones($('#ct-status'), CT_ESTADO, 'Todos los estados');
+  opciones($('#mc-type'), CT_TIPO);
+  $('#ct-new').hidden = !puede('content');
+  alFiltrar(['ct-q', 'ct-type', 'ct-status'], ctPag, loadContenido);
+  enlazarPaginas('ct', ctPag, loadContenido);
+  $('#ct-new').addEventListener('click', () => abrirContenido(null));
+  $('#mc-cancel').addEventListener('click', () => cerrar('m-contenido'));
+  $('#mc-save').addEventListener('click', guardarContenido);
+  $('#mc-toggle').addEventListener('click', () => {
+    const accion = ctActual.status === 'published' ? 'unpublish' : 'publish';
+    conBoton($('#mc-toggle'), 'Un momento…', async () => {
+      try {
+        await api(`/content/items/${ctActual.id}/${accion}`, {method: 'POST'});
+        cerrar('m-contenido'); loadContenido();
+      } catch (e) { fallo($('#mc-msg'), e); }
+    });
+  });
+  $('#mc-delete').addEventListener('click', () => {
+    if (!confirm(`¿Eliminar «${ctActual.title}»? Dejará de aparecer en la consola.`)) return;
+    conBoton($('#mc-delete'), 'Eliminando…', async () => {
+      try {
+        await api(`/content/items/${ctActual.id}`, {method: 'DELETE'});
+        cerrar('m-contenido'); loadContenido();
+      } catch (e) { fallo($('#mc-msg'), e); }
+    });
+  });
+}
+
+/* ---------- 10 · catálogos ---------- */
+const cgPag = {page: 1, pageSize: 25};
+const prPag = {page: 1, pageSize: 25};
+let cgActual = null, prActual = null, prCargado = false;
+
+async function loadCatalogos() { await loadCuidadoras(); }
+
+async function loadCuidadoras() {
+  clearError('err-catalogos');
+  try {
+    const d = await api('/marketplace/caregivers?' + filtros(cgPag,
+      [['cg-q', 'q'], ['cg-status', 'status'], ['cg-zone', 'zone'], ['cg-specialty', 'specialty']]));
+    const tb = $('#cg-table tbody');
+    tb.textContent = '';
+    d.items.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', () => abrirCuidadora(c));
+      const nombre = td(c.name); nombre.style.fontWeight = '700';
+      tr.append(nombre, td(c.zone), tdNode(etiquetas(c.specialties)),
+                td(`${fmt(c.certifications_verified_count)} de ${fmt(c.certifications_count)}`, 'num'),
+                td(c.rating_avg != null ? `★ ${dec(c.rating_avg)} (${fmt(c.reviews_count)})` : 'Sin reseñas', 'num'),
+                tdNode(chip(CG_CHIP, c.status)), td(fechaCorta(c.submitted_at), 'num'));
+      tb.appendChild(tr);
+    });
+    $('#cg-empty').hidden = d.items.length > 0;
+    paginar('cg', d);
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-catalogos', e);
+  }
+}
+
+function abrirCuidadora(c) {
+  cgActual = c;
+  const escribe = puede('marketplace');
+  $('#mg-nombre').textContent = c.name;
+  $('#mg-sub').textContent = `${c.zone} · postuló el ${fechaCorta(c.submitted_at)}`;
+  fichaDl($('#mg-ficha'), [
+    ['Estado', chip(CG_CHIP, c.status)],
+    ['Certificaciones', `${fmt(c.certifications_verified_count)} verificadas de ${fmt(c.certifications_count)}`],
+    ['Especialidades', etiquetas(c.specialties)],
+    ['Idiomas', (c.languages || []).join(', ') || '—'],
+    ['Valoración', c.rating_avg != null ? `★ ${dec(c.rating_avg)} de 5 · ${fmt(c.reviews_count)} reseñas` : 'Sin reseñas'],
+    ['Revisada por', c.reviewed_by_name || '—'],
+  ]);
+  $('#mg-reason').value = '';
+  $('#mg-note').value = c.internal_note || '';
+  ['mg-reason', 'mg-note'].forEach(id => { $('#' + id).disabled = !escribe; });
+  // 10.2: sin certificación verificada no se puede aprobar; se explica en vez de fallar.
+  const sinVerificar = c.certifications_verified_count < 1;
+  $('#mg-approve').hidden = !escribe || c.status === 'approved' || sinVerificar;
+  if (escribe && sinVerificar && c.status !== 'approved') {
+    aviso($('#mg-msg'), 'Para aprobar este perfil falta verificar al menos una certificación.', 'warn');
+  }
+  $('#mg-approve').textContent = c.status === 'suspended' ? 'Reactivar' : 'Aprobar';
+  $('#mg-suspend').hidden = !escribe || c.status === 'suspended';
+  $('#mg-save-note').hidden = !escribe;
+  if (!(escribe && sinVerificar && c.status !== 'approved')) $('#mg-msg').classList.remove('on');
+  $('#m-cuidadora').hidden = false;
+}
+
+async function patchCuidadora(btn, cambio, textoOk) {
+  await conBoton(btn, 'Guardando…', async () => {
+    try {
+      const c = await api(`/marketplace/caregivers/${cgActual.caregiver_id}`, {method: 'PATCH', body: cambio});
+      abrirCuidadora(c);
+      aviso($('#mg-msg'), textoOk, 'ok');
+      loadCuidadoras();
+    } catch (e) { fallo($('#mg-msg'), e); }
+  });
+}
+
+async function loadProductos() {
+  clearError('err-catalogos');
+  try {
+    const d = await api('/marketplace/products?' + filtros(prPag,
+      [['pr-q', 'q'], ['pr-category', 'category'], ['pr-status', 'status']]));
+    const tb = $('#pr-table tbody');
+    tb.textContent = '';
+    d.items.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', () => abrirProducto(p));
+      const nombre = td(p.name); nombre.style.fontWeight = '700';
+      tr.append(nombre, td(p.category), td(p.vendor),
+                td(p.price_clp != null ? '$' + fmt(p.price_clp) : '—', 'num'),
+                tdNode(chip(PR_CHIP, p.status)), td(fechaCorta(p.updated_at), 'num'));
+      tb.appendChild(tr);
+    });
+    $('#pr-empty').hidden = d.items.length > 0;
+    paginar('pr', d);
+  } catch (e) {
+    if (e.status !== 401) showError('err-catalogos', e);
+  }
+}
+
+function abrirProducto(p) {
+  prActual = p || null;
+  const escribe = puede('marketplace');
+  $('#mp-titulo-h').textContent = p ? (escribe ? 'Editar artículo' : 'Artículo') : 'Nuevo artículo';
+  $('#mp-name').value = p ? p.name : '';
+  $('#mp-category').value = p ? p.category : '';
+  $('#mp-vendor').value = p ? p.vendor : '';
+  $('#mp-price').value = p && p.price_clp != null ? p.price_clp : '';
+  $('#mp-status').value = p ? p.status : 'draft';
+  $('#mp-url').value = p ? p.external_url : '';
+  $('#mp-image').value = p && p.image_url ? p.image_url : '';
+  ['mp-name', 'mp-category', 'mp-vendor', 'mp-price', 'mp-status', 'mp-url', 'mp-image']
+    .forEach(id => { $('#' + id).disabled = !escribe; });
+  $('#mp-save').hidden = !escribe;
+  $('#mp-msg').classList.remove('on');
+  $('#m-producto').hidden = false;
+}
+
+async function guardarProducto() {
+  const cuerpo = {name: $('#mp-name').value.trim(), category: $('#mp-category').value.trim(),
+                  vendor: $('#mp-vendor').value.trim(), external_url: $('#mp-url').value.trim()};
+  const precio = $('#mp-price').value, imagen = $('#mp-image').value.trim(), estado = $('#mp-status').value;
+  if (cuerpo.name.length < 3 || cuerpo.category.length < 2 || cuerpo.vendor.length < 2) {
+    aviso($('#mp-msg'), 'Completa nombre (3+), categoría y proveedor (2+ caracteres).', 'err'); return;
+  }
+  if (!cuerpo.external_url.startsWith('https://')) {
+    aviso($('#mp-msg'), 'El enlace a la tienda debe empezar con https://', 'err'); return;
+  }
+  if (precio !== '') cuerpo.price_clp = Number(precio);
+  if (imagen) cuerpo.image_url = imagen;
+  await conBoton($('#mp-save'), 'Guardando…', async () => {
+    try {
+      if (prActual) {
+        await api(`/marketplace/products/${prActual.id}`, {method: 'PATCH', body: {...cuerpo, status: estado}});
+      } else {
+        const nuevo = await api('/marketplace/products', {method: 'POST', body: cuerpo});
+        // El alta crea el artículo en borrador (10.4); el estado elegido se aplica después.
+        if (estado !== 'draft') await api(`/marketplace/products/${nuevo.id}`, {method: 'PATCH', body: {status: estado}});
+      }
+      cerrar('m-producto');
+      loadProductos();
+    } catch (e) { fallo($('#mp-msg'), e); }
+  });
+}
+
+function initCatalogos() {
+  opciones($('#cg-status'), CG_ESTADO, 'Todos los estados');
+  opciones($('#pr-status'), PR_ESTADO, 'Todos los estados');
+  opciones($('#mp-status'), PR_ESTADO);
+  $('#pr-new').hidden = !puede('marketplace');
+  alFiltrar(['cg-q', 'cg-status', 'cg-zone', 'cg-specialty'], cgPag, loadCuidadoras);
+  alFiltrar(['pr-q', 'pr-category', 'pr-status'], prPag, loadProductos);
+  enlazarPaginas('cg', cgPag, loadCuidadoras);
+  enlazarPaginas('pr', prPag, loadProductos);
+
+  document.querySelectorAll('#mk-tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#mk-tabs button').forEach(x => x.classList.toggle('on', x === b));
+    const productos = b.dataset.tab === 'productos';
+    $('#mk-productos').hidden = !productos;
+    $('#mk-cuidadoras').hidden = productos;
+    if (productos && !prCargado) { prCargado = true; loadProductos(); }
+  }));
+
+  $('#mg-cancel').addEventListener('click', () => cerrar('m-cuidadora'));
+  $('#mg-approve').addEventListener('click', () => {
+    const cambio = {status: 'approved'};
+    const nota = $('#mg-note').value.trim();
+    if (nota) cambio.internal_note = nota;
+    patchCuidadora($('#mg-approve'), cambio, 'Perfil aprobado: ya aparece en el marketplace.');
+  });
+  $('#mg-suspend').addEventListener('click', () => {
+    const motivo = $('#mg-reason').value.trim();
+    if (motivo.length < 10) {
+      aviso($('#mg-msg'), 'Escribe el motivo de la suspensión (mínimo 10 caracteres): se envía a la cuidadora.', 'err');
+      $('#mg-reason').focus(); return;
+    }
+    patchCuidadora($('#mg-suspend'), {status: 'suspended', reason: motivo}, 'Perfil suspendido.');
+  });
+  $('#mg-save-note').addEventListener('click', () => {
+    patchCuidadora($('#mg-save-note'), {internal_note: $('#mg-note').value.trim()}, 'Nota guardada.');
+  });
+
+  $('#pr-new').addEventListener('click', () => abrirProducto(null));
+  $('#mp-cancel').addEventListener('click', () => cerrar('m-producto'));
+  $('#mp-save').addEventListener('click', guardarProducto);
+}
+
+/* ---------- 11 · moderación ---------- */
+const mdPag = {page: 1, pageSize: 25};
+
+function cuerpoModeracion(c) {
+  const w = document.createElement('div');
+  w.className = 'mod-cuerpo';
+  if (c.rating) {
+    const e = document.createElement('div');
+    e.className = 'estrellas'; e.textContent = estrellas(Math.max(0, Math.min(5, c.rating)));
+    e.setAttribute('aria-label', `${c.rating} de 5 estrellas`);
+    w.appendChild(e);
+  }
+  const texto = c.text || c.bio;
+  if (texto) w.appendChild(document.createTextNode(texto));
+  const extra = [];
+  if (c.album) extra.push(`Álbum: ${c.album}`);
+  if (c.zone) extra.push(`Zona: ${c.zone}`);
+  if (extra.length) {
+    const x = document.createElement('div');
+    x.className = 'hint'; x.textContent = extra.join(' · ');
+    w.appendChild(x);
+  }
+  if (c.url) {
+    const a = document.createElement('a');
+    a.href = c.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.textContent = 'Abrir la foto en otra pestaña';
+    w.appendChild(a);
+  }
+  return w;
+}
+
+function itemModeracion(m) {
+  const card = document.createElement('article');
+  card.className = 'mod-item';
+  const h = document.createElement('div');
+  h.className = 'mod-h';
+  const autor = document.createElement('b'); autor.textContent = m.author.name;
+  h.append(chip({x: ['neutral', MD_TIPO[m.type] || m.type]}, 'x'), autor,
+           document.createTextNode(`${ROLE_SINGLE[m.author.role] || ''} · ${fechaHora(m.created_at)}`));
+  card.appendChild(h);
+  card.appendChild(cuerpoModeracion(m.content || {}));
+
+  if (m.reported_by || m.report_reason) {
+    const r = document.createElement('div');
+    r.className = 'mod-reporte';
+    const quien = m.reported_by && m.reported_by.name ? m.reported_by.name : 'Un usuario';
+    r.textContent = `⚑ Reportado por ${quien}: ${m.report_reason || 'sin motivo indicado'}`;
+    card.appendChild(r);
+  }
+
+  const acc = document.createElement('div');
+  acc.className = 'mod-acciones';
+  if (m.status !== 'pending') {
+    acc.append(chip(MD_CHIP, m.status),
+               document.createTextNode(`por ${m.decided_by_name || '—'} · ${m.decided_at ? fechaHora(m.decided_at) : ''}`));
+  } else if (puede('moderation')) {
+    const aprobar = document.createElement('button');
+    aprobar.className = 'btn-sm'; aprobar.textContent = 'Aprobar';
+    const motivo = document.createElement('select');
+    motivo.setAttribute('aria-label', 'Motivo del rechazo');
+    opciones(motivo, MOTIVO, 'Motivo del rechazo…');
+    const nota = document.createElement('input');
+    nota.type = 'text'; nota.maxLength = 1000; nota.placeholder = 'Nota para el autor (opcional)';
+    nota.setAttribute('aria-label', 'Nota de la decisión');
+    const rechazar = document.createElement('button');
+    rechazar.className = 'btn-sm btn-danger'; rechazar.textContent = 'Rechazar';
+    const msg = document.createElement('div'); msg.className = 'inline-msg'; msg.style.flexBasis = '100%';
+
+    const decidir = (btn, accion, cuerpo) => conBoton(btn, 'Guardando…', async () => {
+      try {
+        await api(`/moderation/queue/${m.id}/${accion}`, {method: 'POST', body: cuerpo});
+        loadModeracion();
+      } catch (e) {
+        fallo(msg, e);
+        if (e.code === 'ALREADY_MODERATED') setTimeout(loadModeracion, 1500);
+      }
+    });
+    aprobar.addEventListener('click', () => decidir(aprobar, 'approve', nota.value.trim() ? {note: nota.value.trim()} : {}));
+    rechazar.addEventListener('click', () => {
+      if (!motivo.value) { aviso(msg, 'Elige el motivo del rechazo.', 'err'); motivo.focus(); return; }
+      if (motivo.value === 'other' && !nota.value.trim()) {
+        aviso(msg, 'Con «Otro» detalla la razón en la nota.', 'err'); nota.focus(); return;
+      }
+      const cuerpo = {reason_code: motivo.value};
+      if (nota.value.trim()) cuerpo.note = nota.value.trim();
+      decidir(rechazar, 'reject', cuerpo);
+    });
+    acc.append(aprobar, motivo, nota, rechazar, msg);
+  } else {
+    acc.append(chip(MD_CHIP, m.status));
+  }
+  card.appendChild(acc);
+  return card;
+}
+
+async function loadModeracion() {
+  clearError('err-moderacion');
+  try {
+    const d = await api('/moderation/queue?' + filtros(mdPag, [['md-status', 'status'], ['md-type', 'type']]));
+    const lista = $('#md-list');
+    lista.textContent = '';
+    d.items.forEach(m => lista.appendChild(itemModeracion(m)));
+    $('#md-empty').hidden = d.items.length > 0;
+    paginar('md', d);
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-moderacion', e);
+  }
+}
+
+function initModeracion() {
+  opciones($('#md-status'), MD_ESTADO);
+  opciones($('#md-type'), MD_TIPO, 'Todos los tipos');
+  alFiltrar(['md-status', 'md-type'], mdPag, loadModeracion);
+  enlazarPaginas('md', mdPag, loadModeracion);
+}
+
+function initOperacion() {
+  initContenido();
+  initCatalogos();
+  initModeracion();
+  // Escape cierra cualquier modal abierto.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => { m.hidden = true; });
+  });
+}
+
+/* ================================================================
    ARRANQUE
 ================================================================ */
 async function boot() {
@@ -1915,6 +2623,7 @@ async function boot() {
   // El endpoint /auth/me devuelve módulos, no el nivel, así que se decide por el rol.
   puedeEscribir = ['admin', 'support'].includes(me.role);
   initTickets();
+  initOperacion();
 
   const initials = me.full_name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   $('#sf-avatar').textContent = initials;

@@ -23,6 +23,7 @@ def _cg_out(c: M.CaregiverProfile, nombres: dict, include_note: bool = False) ->
     return CaregiverOut(caregiver_id=c.caregiver_id, name=c.display_name, zone=c.zone,
                         specialties=c.specialties or [], languages=c.languages or [],
                         certifications_count=c.certifications_count,
+                        certifications_verified_count=c.certifications_verified_count,
                         rating_avg=float(c.rating_avg) if c.rating_avg is not None else None,
                         reviews_count=c.reviews_count, status=CaregiverStatus(c.status),
                         submitted_at=c.submitted_at, reviewed_by_name=nombres.get(c.reviewed_by),

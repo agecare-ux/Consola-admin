@@ -46,6 +46,9 @@ class CaregiverOut(BaseModel):
     specialties: list[str]
     languages: list[str]
     certifications_count: int
+    # Campo adicional a la spec 10.1: la consola lo necesita para explicar por qué un
+    # perfil no puede aprobarse (10.2 exige al menos una certificación verificada).
+    certifications_verified_count: int = 0
     rating_avg: float | None
     reviews_count: int
     status: CaregiverStatus
