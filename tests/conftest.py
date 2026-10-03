@@ -39,6 +39,10 @@ SERVIDOR = os.environ.get(
 )
 BD_TEST = f"agecare_test_{uuid.uuid4().hex[:8]}"
 URL_TEST = SERVIDOR.rsplit("/", 1)[0] + "/" + BD_TEST
+# Rol de login de la API para la suite (miembro de agecare_admin_api, sujeto a RLS).
+ROL_API, CLAVE_API = "agecare_api_test", "clave_api_test"
+_host = SERVIDOR.rsplit("/", 1)[0].split("@", 1)[1]
+URL_API = f"postgresql+asyncpg://{ROL_API}:{CLAVE_API}@{_host}/{BD_TEST}"
 
 # La app lee la configuración al importarse, así que hay que fijarla antes.
 os.environ["ADMIN_DATABASE_URL"] = URL_TEST
@@ -78,20 +82,33 @@ async def engine():
             returncode=1,
         )
 
-    eng = create_async_engine(URL_TEST, poolclass=NullPool)
+    # Esquema del prototipo (public) y canónico (admin): conviven durante la fase 3.
+    propietario = create_async_engine(URL_TEST, poolclass=NullPool)
+    async with propietario.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    from scripts.aplicar_modelo import principal
+    assert await principal(URL_TEST, False, False, rol_api=f"{ROL_API}:{CLAVE_API}") == 0
+
+    # Se siembra como propietario y la API corre con su rol propio: así la suite
+    # ejerce la seguridad por fila igual que en el despliegue.
+    database._engine = propietario
+    database._session_factory = async_sessionmaker(propietario, expire_on_commit=False)
+    from scripts.seed import seed
+    from scripts.seed_canonico import seed as seed_canonico
+    await seed()
+    await seed_canonico()
+
+    eng = create_async_engine(URL_API, poolclass=NullPool)
     database._engine = eng
     database._session_factory = async_sessionmaker(eng, expire_on_commit=False)
-    async with eng.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield eng
     await eng.dispose()
+    await propietario.dispose()
     await _sin_transaccion(f'DROP DATABASE IF EXISTS "{BD_TEST}" WITH (FORCE)')
 
 
 @pytest_asyncio.fixture(scope="session")
 async def seeded(engine):
-    from scripts.seed import seed
-    await seed()
     return True
 
 

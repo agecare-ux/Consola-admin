@@ -45,6 +45,17 @@ def normalizar(url: str) -> str:
     return urlunsplit((partes.scheme, partes.netloc, partes.path, "", ""))
 
 
+def ssl_para(url: str):
+    """Cifrado según el destino: obligatorio en la nube, opcional en local.
+
+    Neon exige SSL. El PostgreSQL que instala el instalador de Windows viene sin SSL,
+    y pedir `require` contra él hace fallar la conexión. En local se deja que asyncpg
+    negocie (usa SSL si el servidor lo ofrece y, si no, conecta sin él).
+    """
+    host = (urlsplit(normalizar(url)).hostname or "").lower()
+    return "prefer" if host in ("localhost", "127.0.0.1", "::1") else "require"
+
+
 def sin_metacomandos(sql: str) -> str:
     """Quita las directivas de psql, que empiezan por barra invertida.
 
@@ -130,8 +141,24 @@ async def crear_rol_api(conn: asyncpg.Connection, usuario: str, clave: str) -> N
         f"THEN CREATE ROLE {usuario} LOGIN PASSWORD '{clave}' IN ROLE agecare_admin_api; "
         f"ELSE ALTER ROLE {usuario} LOGIN PASSWORD '{clave}'; END IF; END $$;")
     await conn.execute(f"GRANT agecare_admin_api TO {usuario}")
+    await conceder_transicion(conn)
     print(f"  rol {usuario} listo (miembro de agecare_admin_api)")
     print(f"  apunta ADMIN_DATABASE_URL a ese usuario para que el aislamiento actúe")
+
+
+async def conceder_transicion(conn: asyncpg.Connection) -> None:
+    """Permisos TEMPORALES de agecare_admin_api sobre el esquema del prototipo.
+
+    Durante la fase 3 conviven los dos esquemas: los routers ya migrados usan `admin`
+    y los que faltan siguen leyendo `public`. Sin esto, la API conectada con su rol
+    propio fallaría en todos los módulos aún no migrados. Se elimina al cerrar la
+    fase 3, cuando `public` queda vacío.
+    """
+    await conn.execute(
+        "GRANT USAGE ON SCHEMA public TO agecare_admin_api;"
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO agecare_admin_api;"
+        "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO agecare_admin_api;")
+    print("  permisos de transición sobre public concedidos (se retiran al cerrar la fase 3)")
 
 
 async def principal(url: str, con_pruebas: bool, solo_pruebas: bool, rol_api: str | None = None) -> int:
@@ -140,7 +167,7 @@ async def principal(url: str, con_pruebas: bool, solo_pruebas: bool, rol_api: st
     print(f"Destino: {visible}")
 
     try:
-        conn = await asyncpg.connect(destino, ssl="require", timeout=30)
+        conn = await asyncpg.connect(destino, ssl=ssl_para(destino), timeout=30)
     except Exception as e:
         print(f"\nNo se pudo conectar.\n  {type(e).__name__}: {e}", file=sys.stderr)
         print("  Revisa que ADMIN_DATABASE_URL apunte al endpoint directo (sin -pooler)"

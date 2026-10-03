@@ -47,7 +47,8 @@ def invalid(code: str, message: str, details: list | None = None) -> ApiError:
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        request.state.request_id = request.headers.get("X-Request-Id") or uuid.uuid4().hex[:16]
+        # UUID completo: el modelo canónico lo guarda en audit_log.request_id (uuid).
+        request.state.request_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
         response = await call_next(request)
         response.headers["X-Request-Id"] = request.state.request_id
         return response

@@ -62,7 +62,13 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
 - [x] Fase 2 · Tenant en el token, contexto por transacción y traducción de errores de la base
-- [ ] Fase 3 · Routers adaptados a los nombres nuevos
+- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 7 de 50 endpoints
+  - [x] Auth y staff (3.1–3.7), más `deps.py` y `audit.py`, que usan todos los routers
+  - [ ] Comercial (4) · Perfiles (2) · Funcionalidades (3)
+  - [ ] Operativo e incidentes (6)
+  - [ ] Tickets y soporte (8)
+  - [ ] Contenido (6) · Marketplace (5) · Moderación (3)
+  - [ ] Configuración (2) · Legales (3) · Auditoría (1)
 - [ ] Fase 4 · Seed con tenants y catálogos
 - [ ] Fase 5 · Verificación contra las tres auditorías
 
@@ -151,3 +157,34 @@ aparecen de uno en uno, cuando son baratos de arreglar. El coste de hacerlo ahor
 una sentencia SQL y una variable de entorno.
 
 Verificado: con el rol de la aplicación se ve un solo tenant; con el propietario, dos.
+
+## Transición de la fase 3
+
+Mientras haya routers sin migrar conviven los dos esquemas, y hay tres apoyos
+temporales que se retiran al cerrar la fase:
+
+| Apoyo temporal | Por qué existe | Cómo se retira |
+|---|---|---|
+| `app/compat.py` | Da a `AdminUser` una propiedad `role` (= `role_code`) para los schemas y los routers que aún leen el nombre viejo | Borrar el archivo y su import en `app/deps.py`; correr pytest y las dos auditorías |
+| Permisos de `agecare_admin_api` sobre `public` | Con el rol propio de la API, los routers sin migrar no podrían leer el prototipo | Desaparecen al eliminar la revisión 0001 y vaciar `public` |
+| Doble seed en los tests | `conftest.py` siembra el prototipo y el canónico | Quitar `scripts.seed` del fixture |
+
+Los permisos de transición los concede `aplicar_modelo.py --rol-api`. Si el rol se
+creó antes de este cambio, basta con volver a ejecutar ese mismo comando: es
+idempotente y solo reafirma la clave.
+
+**Efectos conocidos hasta migrar su módulo.** Desde que auth usa el esquema
+canónico, el staff y el registro de auditoría viven en `admin`. Por eso, hasta
+migrar su router:
+
+- Asignar un ticket (`PATCH /support/tickets/{id}` con `assigned_to`) responde
+  `ASSIGNEE_NOT_FOUND`, porque busca al agente en `public`.
+- `GET /audit-log` no muestra las acciones nuevas, porque lee la tabla de `public`.
+
+**Secreto MFA.** El modelo pide guardar el secreto TOTP cifrado por la aplicación
+con Key Vault (`mfa_secret_enc`). Eso pertenece al despliegue en Azure, fuera del
+alcance académico. En la demo se guardan los bytes del secreto sin cifrar.
+
+**Bloqueo de login.** Se calcula contando en `admin_login_attempts` las contraseñas
+incorrectas de los últimos 10 minutos, desde el último login correcto o el fin del
+último bloqueo (spec 3.1: "persistido, no en memoria").
