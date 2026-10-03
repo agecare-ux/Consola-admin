@@ -3,6 +3,7 @@
 Todo error responde:
     {"error": {"code": "...", "message": "...", "details": [...] | null, "request_id": "..."}}
 """
+import logging
 import uuid
 
 from fastapi import FastAPI, Request
@@ -133,6 +134,20 @@ def traducir_error_de_bd(exc: Exception) -> ApiError | None:
     return None
 
 
+_log = logging.getLogger("agecare.api")
+
+
+def _registrar(request: Request, exc: Exception) -> None:
+    """Deja la traza completa en los logs (Vercel: Runtime Logs) con su request_id.
+
+    El mensaje al usuario dice "revisa el request_id en los logs"; sin esto, en los
+    logs no había nada que revisar.
+    """
+    _log.error("INTERNAL_ERROR request_id=%s %s %s",
+               getattr(request.state, "request_id", "-"), request.method, request.url.path,
+               exc_info=(type(exc), exc, exc.__traceback__))
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError):
@@ -153,6 +168,7 @@ def register_error_handlers(app: FastAPI) -> None:
     async def db_error_handler(request: Request, exc: DBAPIError):
         traducido = traducir_error_de_bd(exc)
         if traducido is None:
+            _registrar(request, exc)
             return JSONResponse(status_code=500, content=_body(
                 request, "INTERNAL_ERROR", "Error interno. Revisa el request_id en los logs."))
         return JSONResponse(status_code=traducido.status_code, content=_body(
@@ -160,5 +176,6 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def internal_handler(request: Request, exc: Exception):
+        _registrar(request, exc)
         return JSONResponse(status_code=500, content=_body(
             request, "INTERNAL_ERROR", "Error interno. Revisa el request_id en los logs."))

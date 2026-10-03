@@ -55,7 +55,10 @@ A_VACIAR = ["audit_log", "support_csat_surveys", "support_ticket_replies", "supp
             "ops_critical_process_state", "ops_latency_window", "ops_component_state",
             "feature_usage_window", "role_weekly_active", "role_activity_window",
             "metrics_funnel_snapshot", "metrics_plan_snapshot", "metrics_hourly_users",
-            "metrics_daily_users", "legal_versions", "system_settings", "admin_users"]
+            "metrics_daily_users", "legal_versions", "system_settings",
+            # Las crea el uso de la API (login, alta de staff): sin vaciarlas antes,
+            # admin_invitations.created_by impide borrar el staff al volver a sembrar.
+            "admin_login_attempts", "admin_sessions", "admin_invitations", "admin_users"]
 
 
 async def seed() -> None:
