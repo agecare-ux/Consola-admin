@@ -16,6 +16,7 @@ from app.schemas.support import (Assignee, ByCategoryOut, CategoryRow, Csat, Rep
                                  ReplyOut, Requester, SupportDeltas, SupportSummaryOut,
                                  TicketCreateIn, TicketDetailOut, TicketOut, TicketPatchIn)
 from app.security import now_utc
+from app.staff import nombres_de_staff
 
 router = APIRouter(prefix="/support", tags=["Soporte"])
 T, R, C = M.Ticket, M.TicketReply, M.SupportCsatSurveys
@@ -34,11 +35,7 @@ async def _transicion_valida(db, actual: str, destino: str) -> bool:
 
 async def _nombres_agentes(db, tickets) -> dict:
     """{admin_id: nombre} de los agentes asignados (una consulta para toda la página)."""
-    ids = {t.assigned_to for t in tickets if t.assigned_to}
-    if not ids:
-        return {}
-    return dict((await db.execute(select(M.AdminUser.id, M.AdminUser.full_name)
-                                  .where(M.AdminUser.id.in_(ids)))).all())
+    return await nombres_de_staff(db, [t.assigned_to for t in tickets])
 
 
 def _ticket_out(t: M.Ticket, agentes: dict) -> TicketOut:

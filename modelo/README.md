@@ -62,7 +62,7 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
 - [x] Fase 0 · Tests sobre PostgreSQL en vez de SQLite; modelo canónico versionado aquí; script `scripts/aplicar_modelo.py`
 - [x] Fase 1 · Migración Alembic (`0002_modelo_canonico`) y modelos generados en `app/models_canonico.py`
 - [x] Fase 2 · Tenant en el token, contexto por transacción y traducción de errores de la base
-- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 30 de 50 endpoints
+- [ ] Fase 3 · Routers adaptados a los nombres nuevos — 44 de 50 endpoints
   - [x] Auth y staff (3.1–3.7), más `deps.py` y `audit.py`, que usan todos los routers
   - [x] Comercial (4) · Perfiles (2) · Funcionalidades (3). Periodos en la zona
         horaria del tenant; embudo desde `metrics_funnel_snapshot`; ventana de perfiles
@@ -73,7 +73,9 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
   - [x] Tickets y soporte (8). Transiciones, fechas, reaperturas, número correlativo y
         primera respuesta los ponen los triggers; CSAT desde `support_csat_surveys`. Un
         ticket previo solo identifica al usuario si estaba enlazado a su cuenta
-  - [ ] Contenido (6) · Marketplace (5) · Moderación (3)
+  - [x] Contenido (6) · Marketplace (5) · Moderación (3). Los nombres de quién creó,
+        revisó o decidió se resuelven desde `admin_users` (`app/staff.py`); el filtro por
+        especialidad se hace en la base, antes de paginar
   - [ ] Configuración (2) · Legales (3) · Auditoría (1)
 - [ ] Fase 4 · Seed con tenants y catálogos
 - [ ] Fase 5 · Verificación contra las tres auditorías
