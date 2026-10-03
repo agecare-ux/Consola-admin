@@ -452,7 +452,7 @@ async def seed() -> None:
         cuentas = list(staff.values())
         for accion, entidad in [("auth.login", "admin_user"), ("ticket.update", "ticket"),
                                 ("ticket.reply", "ticket"), ("content.publish", "content_item"),
-                                ("settings.update", "setting"), ("moderation.approve", "moderation_item"),
+                                ("settings.update", "system_setting"), ("moderation.approve", "moderation_item"),
                                 ("auth.login_failed", "admin_user")]:
             for _ in range(8):
                 quien = random.choice(cuentas)

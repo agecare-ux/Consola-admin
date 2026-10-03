@@ -200,9 +200,6 @@
   .heat td:hover{outline:2px solid var(--ink);outline-offset:-2px}
 
   /* misc */
-  .placeholder-box{border:2px dashed var(--line-strong);border-radius:var(--radius);
-    padding:60px 30px;text-align:center;color:var(--ink-faint);background:#fbfcfe}
-  .placeholder-box b{color:var(--ink-soft)}
   .flag-list li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);list-style:none}
   .flag-list li:last-child{border-bottom:none}
   .flag-list .fl-t{font-weight:600;font-size:12.5px}
@@ -348,6 +345,25 @@
   .mod-acciones input{flex:1;min-width:180px}
   .estrellas{color:var(--gold);letter-spacing:1px}
 
+  /* ============ CONFIGURACIÓN · LEGALES · EQUIPO · AUDITORÍA ============ */
+  .cfg-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .cfg-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;
+    display:flex;flex-direction:column;gap:8px}
+  .cfg-key{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .cfg-desc{font-size:13.5px;font-weight:700;line-height:1.4}
+  .cfg-valor{font-size:12.5px;background:var(--sunken);border-radius:var(--radius-m);padding:8px 10px;
+    white-space:pre-wrap;word-break:break-word;font-variant-numeric:tabular-nums}
+  .cfg-pie{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--ink-soft);margin-top:auto}
+  .codigo{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  .lg-docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px}
+  .lg-vigente{display:flex;align-items:baseline;gap:10px;margin:6px 0 12px}
+  .lg-semver{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .lg-draft{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px}
+  .lg-draft:first-of-type{border-top:none}
+  .diff{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .diff pre{background:var(--sunken);border-radius:var(--radius-m);padding:10px;font-size:12px;
+    white-space:pre-wrap;word-break:break-word;max-height:300px;overflow:auto;margin-top:5px}
+
 </style>
 </head>
 <body>
@@ -404,8 +420,10 @@
     <button class="nav-item" data-view="catalogos" data-perm="marketplace"><span class="ico">🛍️</span>Catálogos marketplace</button>
     <button class="nav-item" data-view="moderacion" data-perm="moderation"><span class="ico">🛡️</span>Moderación</button>
     <div class="nav-group">Sistema</div>
-    <button class="nav-item" data-view="ph-config" data-perm="settings"><span class="ico">⚙️</span>Configuración<span class="soon">v1</span></button>
-    <button class="nav-item" data-view="ph-legales" data-perm="legal"><span class="ico">📜</span>Legales y privacidad<span class="soon">v1</span></button>
+    <button class="nav-item" data-view="config" data-perm="settings"><span class="ico">⚙️</span>Configuración</button>
+    <button class="nav-item" data-view="legales" data-perm="legal"><span class="ico">📜</span>Legales y privacidad</button>
+    <button class="nav-item" data-view="staff" data-perm="staff"><span class="ico">🪪</span>Equipo de la consola</button>
+    <button class="nav-item" data-view="auditoria" data-perm="audit"><span class="ico">🧾</span>Auditoría</button>
   </nav>
   <div class="sidebar-foot">
     <div class="sf-avatar" id="sf-avatar">··</div>
@@ -819,15 +837,66 @@
   </div>
 </section>
 
-<!-- ============ PLACEHOLDER ============ -->
-<section class="view" id="view-placeholder">
-  <div class="placeholder-box">
-    <div style="font-size:34px;margin-bottom:12px" id="ph-ico">🎫</div>
-    <div style="font-size:16px;font-weight:700;color:var(--ink-soft)" id="ph-title">Tickets de soporte</div>
-    <p style="margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.6">
-      La API de este módulo ya está implementada y disponible en
-      <b>/api/v1/admin</b>; la pantalla se diseñará en una iteración posterior.
-    </p>
+<!-- ============ CONFIGURACIÓN (sección 12) ============ -->
+<section class="view" id="view-config">
+  <div id="err-config"></div>
+  <div class="tk-bar"><span class="hint" style="margin:0">Los cambios se aplican en todos los servicios en menos de un minuto, sin reiniciar nada.</span></div>
+  <div class="cfg-list" id="cfg-list"></div>
+</section>
+
+<!-- ============ LEGALES (sección 13) ============ -->
+<section class="view" id="view-legales">
+  <div id="err-legales"></div>
+  <div class="lg-docs" id="lg-docs"></div>
+</section>
+
+<!-- ============ EQUIPO DE LA CONSOLA (sección 3.5–3.7) ============ -->
+<section class="view" id="view-staff">
+  <div id="err-staff"></div>
+  <div class="tk-bar">
+    <input type="search" id="st-q" placeholder="Buscar por nombre o correo">
+    <select id="st-role"></select>
+    <select id="st-active"><option value="">Activas e inactivas</option>
+      <option value="true">Solo activas</option><option value="false">Solo desactivadas</option></select>
+    <div class="tk-spacer"></div>
+    <button class="btn-sm" id="st-new">Invitar a alguien</button>
+  </div>
+  <div class="card">
+    <table class="data" id="st-table">
+      <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Segundo factor</th><th>Estado</th>
+        <th class="num">Último acceso</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="st-empty" class="empty" hidden>Nadie coincide con los filtros.</div>
+    <div class="pager">
+      <button class="btn-sm btn-ghost" id="st-prev">Anterior</button>
+      <button class="btn-sm btn-ghost" id="st-next">Siguiente</button>
+      <span id="st-range"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AUDITORÍA (sección 14) ============ -->
+<section class="view" id="view-auditoria">
+  <div id="err-auditoria"></div>
+  <div class="tk-bar">
+    <select id="au-actor"></select>
+    <select id="au-entity"></select>
+    <input type="text" id="au-action" placeholder="Acción exacta, p. ej. staff.update">
+    <label class="check">Desde <input type="date" id="au-from"></label>
+    <label class="check">Hasta <input type="date" id="au-to"></label>
+  </div>
+  <div class="card">
+    <table class="data" id="au-table">
+      <thead><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Sobre</th><th>IP</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="au-empty" class="empty" hidden>No hay registros con estos filtros.</div>
+    <div class="pager">
+      <button class="btn-sm btn-ghost" id="au-prev">Anterior</button>
+      <button class="btn-sm btn-ghost" id="au-next">Siguiente</button>
+      <span id="au-range"></span>
+    </div>
   </div>
 </section>
   </main>
@@ -928,6 +997,80 @@
     </div>
   </div>
 </div>
+<!-- ============ PARÁMETRO: EDITAR ============ -->
+<div class="modal" id="m-config" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="mf-desc">
+    <h3 id="mf-desc"></h3>
+    <div class="sub codigo" id="mf-key"></div>
+    <label for="mf-value">Valor (JSON)</label>
+    <textarea id="mf-value" class="codigo" spellcheck="false"></textarea>
+    <div class="hint" id="mf-schema"></div>
+    <label for="mf-note">Motivo del cambio</label>
+    <input id="mf-note" type="text" maxlength="500" placeholder="Queda en el registro de auditoría">
+    <div class="inline-msg" id="mf-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-ghost" id="mf-cancel">Cancelar</button>
+      <button class="btn-sm" id="mf-save">Guardar cambio</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LEGALES: NUEVA VERSIÓN ============ -->
+<div class="modal" id="m-legal" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="ml-titulo">
+    <h3 id="ml-titulo">Nueva versión</h3>
+    <div class="sub" id="ml-sub"></div>
+    <div class="modal-row">
+      <div><label for="ml-semver">Versión</label><input id="ml-semver" type="text" placeholder="2.2"></div>
+      <div><label for="ml-date">Vigente desde</label><input id="ml-date" type="date"></div>
+    </div>
+    <div class="hint" id="ml-aviso"></div>
+    <label for="ml-changelog">Qué cambia (lo verán los usuarios)</label>
+    <textarea id="ml-changelog" maxlength="2000" style="min-height:70px"></textarea>
+    <label for="ml-content">Texto completo (Markdown)</label>
+    <textarea id="ml-content" style="min-height:180px"></textarea>
+    <div class="inline-msg" id="ml-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-ghost" id="ml-cancel">Cancelar</button>
+      <button class="btn-sm" id="ml-save">Guardar borrador</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EQUIPO: INVITAR / EDITAR ============ -->
+<div class="modal" id="m-staff" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="ms-titulo">
+    <h3 id="ms-titulo">Invitar a alguien</h3>
+    <div class="sub" id="ms-sub">Recibirá un enlace de activación válido por 24 horas.</div>
+    <label for="ms-name">Nombre completo</label>
+    <input id="ms-name" type="text" maxlength="120">
+    <label for="ms-email">Correo corporativo</label>
+    <input id="ms-email" type="email">
+    <label for="ms-role">Rol</label>
+    <select id="ms-role"></select>
+    <label class="check" id="ms-mfa-wrap" style="margin-top:12px"><input type="checkbox" id="ms-mfa"> Exigir segundo factor (obligatorio por defecto para administradores)</label>
+    <label class="check" id="ms-active-wrap" style="margin-top:12px"><input type="checkbox" id="ms-active"> Cuenta activa (al desactivarla se cierran sus sesiones)</label>
+    <div class="inline-msg" id="ms-msg"></div>
+    <div class="modal-foot">
+      <button class="btn-sm btn-ghost" id="ms-cancel">Cancelar</button>
+      <button class="btn-sm" id="ms-save">Enviar invitación</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AUDITORÍA: DETALLE ============ -->
+<div class="modal" id="m-audit" hidden>
+  <div class="modal-card" role="dialog" aria-labelledby="ma-accion" style="max-width:760px">
+    <h3 id="ma-accion" class="codigo"></h3>
+    <div class="sub" id="ma-sub"></div>
+    <dl class="ficha" id="ma-ficha"></dl>
+    <div class="diff">
+      <div><label>Antes</label><pre id="ma-before"></pre></div>
+      <div><label>Después</label><pre id="ma-after"></pre></div>
+    </div>
+    <div class="modal-foot"><button class="btn-sm btn-ghost" id="ma-close">Cerrar</button></div>
+  </div>
+</div>
 <div id="tt" role="status" aria-live="polite"></div>
 
 <script>
@@ -961,8 +1104,9 @@ const Auth = {
 };
 
 class ApiError extends Error {
-  constructor(status, code, message, requestId) {
+  constructor(status, code, message, requestId, details = null) {
     super(message); this.status = status; this.code = code; this.requestId = requestId;
+    this.details = details;   // error.details de la API (validación por campo)
   }
 }
 
@@ -1001,12 +1145,12 @@ async function api(path, {method = 'GET', body = null, retry = true} = {}) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Sesión expirada');
   }
   if (!res.ok) {
-    let code = 'HTTP_' + res.status, msg = res.statusText, rid = null;
+    let code = 'HTTP_' + res.status, msg = res.statusText, rid = null, det = null;
     try {
       const e = (await res.json()).error;
-      if (e) { code = e.code || code; msg = e.message || msg; rid = e.request_id || null; }
+      if (e) { code = e.code || code; msg = e.message || msg; rid = e.request_id || null; det = e.details || null; }
     } catch (_) { /* respuesta sin cuerpo JSON */ }
-    throw new ApiError(res.status, code, msg, rid);
+    throw new ApiError(res.status, code, msg, rid, det);
   }
   if (res.status === 204) return null;   // p. ej. DELETE de contenido (9.6)
   return res.json();
@@ -1359,13 +1503,15 @@ const VIEW_META = {
   contenido: ['Curación de contenido', 'Operación · Chistes y noticias del feed del adulto mayor'],
   catalogos: ['Catálogos del marketplace', 'Operación · Cuidadoras y artículos recomendados'],
   moderacion: ['Moderación', 'Operación · Reseñas, fotos, perfiles y mensajes reportados'],
-};
-const PH_META = {
-  'ph-config': ['⚙️', 'Configuración del sistema'], 'ph-legales': ['📜', 'Legales y privacidad'],
+  config:    ['Configuración', 'Sistema · Parámetros de negocio y umbrales operativos'],
+  legales:   ['Legales y privacidad', 'Sistema · Términos y política de privacidad versionados'],
+  staff:     ['Equipo de la consola', 'Sistema · Cuentas de staff, roles y accesos'],
+  auditoria: ['Auditoría', 'Sistema · Registro de acciones sobre la consola'],
 };
 const LOADERS = {comercial: null, operativo: loadOperativo, usuarios: loadUsuarios,
                  funcional: loadFuncional, tickets: loadTickets, contenido: loadContenido,
-                 catalogos: loadCatalogos, moderacion: loadModeracion};
+                 catalogos: loadCatalogos, moderacion: loadModeracion, config: loadConfig,
+                 legales: loadLegales, staff: loadStaff, auditoria: loadAuditoria};
 const loaded = {};
 
 document.querySelectorAll('.nav-item').forEach(btn => {
@@ -1374,20 +1520,11 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.add('active');
     const v = btn.dataset.view;
     document.querySelectorAll('.view').forEach(s => s.classList.remove('active'));
-    if (v.startsWith('ph-')) {
-      $('#view-placeholder').classList.add('active');
-      $('#ph-ico').textContent = PH_META[v][0];
-      $('#ph-title').textContent = PH_META[v][1];
-      $('#tb-title').textContent = PH_META[v][1];
-      $('#tb-crumb').textContent = 'Operación · módulo previsto en v1';
-      setFreshness(null);
-    } else {
-      $('#view-' + v).classList.add('active');
-      $('#tb-title').textContent = VIEW_META[v][0];
-      $('#tb-crumb').textContent = VIEW_META[v][1];
-      // Carga perezosa: cada sección pide sus datos la primera vez que se abre.
-      if (!loaded[v] && LOADERS[v]) { loaded[v] = true; LOADERS[v](); }
-    }
+    $('#view-' + v).classList.add('active');
+    $('#tb-title').textContent = VIEW_META[v][0];
+    $('#tb-crumb').textContent = VIEW_META[v][1];
+    // Carga perezosa: cada sección pide sus datos la primera vez que se abre.
+    if (!loaded[v] && LOADERS[v]) { loaded[v] = true; LOADERS[v](); }
     window.scrollTo({top: 0});
   });
 });
@@ -2607,6 +2744,360 @@ function initOperacion() {
 }
 
 /* ================================================================
+   CONFIGURACIÓN, LEGALES, EQUIPO Y AUDITORÍA (secciones 12, 13, 3.5–3.7 y 14)
+   Todos son módulos solo de admin en la matriz 2.3.
+================================================================ */
+const ROL_STAFF = {admin: 'Administración', analyst: 'Analista', support: 'Soporte',
+                   editor: 'Edición de contenido', moderator: 'Moderación'};
+const DOC_LEGAL = {terms: 'Términos y condiciones', privacy: 'Política de privacidad'};
+const ENTIDAD = {admin_user: 'Cuenta de staff', ticket: 'Ticket', incident: 'Incidente',
+                 content_item: 'Contenido', caregiver_profile: 'Cuidadora', product: 'Artículo',
+                 moderation_item: 'Moderación', system_setting: 'Parámetro', legal_version: 'Versión legal'};
+const json = v => JSON.stringify(v, null, 2);
+
+/* ---------- 12 · configuración ---------- */
+let cfgActual = null;
+
+async function loadConfig() {
+  clearError('err-config');
+  try {
+    const d = await api('/settings');
+    const lista = $('#cfg-list');
+    lista.textContent = '';
+    d.settings.forEach(s => {
+      const c = document.createElement('article');
+      c.className = 'cfg-item';
+      const desc = document.createElement('div'); desc.className = 'cfg-desc'; desc.textContent = s.description;
+      const key = document.createElement('div'); key.className = 'cfg-key codigo'; key.textContent = s.key;
+      const val = document.createElement('div'); val.className = 'cfg-valor codigo'; val.textContent = json(s.value);
+      const pie = document.createElement('div'); pie.className = 'cfg-pie';
+      const quien = s.updated_by ? `${s.updated_by.name || 'Alguien'} · ${fechaHora(s.updated_at)}` : 'Valor inicial';
+      pie.append(document.createTextNode(`v${s.version} · ${quien}`));
+      const sp = document.createElement('div'); sp.className = 'tk-spacer';
+      const editar = document.createElement('button');
+      editar.className = 'btn-sm btn-ghost'; editar.textContent = 'Editar';
+      editar.addEventListener('click', () => abrirConfig(s));
+      pie.append(sp, editar);
+      c.append(desc, key, val, pie);
+      lista.appendChild(c);
+    });
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-config', e);
+  }
+}
+
+function abrirConfig(s) {
+  cfgActual = s;
+  $('#mf-desc').textContent = s.description;
+  $('#mf-key').textContent = `${s.key} · versión ${s.version}`;
+  $('#mf-value').value = json(s.value);
+  $('#mf-schema').textContent = 'Formato esperado: ' + JSON.stringify(s.schema);
+  $('#mf-note').value = '';
+  $('#mf-msg').classList.remove('on');
+  $('#m-config').hidden = false;
+  $('#mf-value').focus();
+}
+
+async function guardarConfig() {
+  let valor;
+  try { valor = JSON.parse($('#mf-value').value); }
+  catch (_) { aviso($('#mf-msg'), 'El valor no es JSON válido. Revisa comillas, comas y llaves.', 'err'); return; }
+  const nota = $('#mf-note').value.trim();
+  if (nota.length < 5) { aviso($('#mf-msg'), 'Explica el motivo del cambio (mínimo 5 caracteres).', 'err'); return; }
+  await conBoton($('#mf-save'), 'Guardando…', async () => {
+    try {
+      await api(`/settings/${encodeURIComponent(cfgActual.key)}`, {method: 'PUT',
+        body: {value: valor, version: cfgActual.version, change_note: nota}});
+      cerrar('m-config');
+      loadConfig();
+    } catch (e) {
+      if (e.status === 401) return;
+      let texto = e.message;
+      if (e.code === 'INVALID_VALUE' && Array.isArray(e.details) && e.details.length) {
+        texto = 'El valor no cumple el formato esperado: ' + e.details.map(x => x.issue).join('; ');
+      }
+      if (e.code === 'VERSION_CONFLICT') texto += ' Se recargó la lista con el valor actual.';
+      aviso($('#mf-msg'), texto, 'err');
+      if (e.code === 'VERSION_CONFLICT') loadConfig();
+    }
+  });
+}
+
+/* ---------- 13 · legales ---------- */
+let lgDocs = {}, lgTipo = null;
+const DIAS_AVISO_MAYOR = 15;   // spec 13.2
+
+async function loadLegales() {
+  clearError('err-legales');
+  try {
+    const d = await api('/legal/documents');
+    const cont = $('#lg-docs');
+    cont.textContent = '';
+    d.documents.forEach(doc => {
+      lgDocs[doc.doc_type] = doc;
+      const card = document.createElement('div'); card.className = 'card';
+      const head = document.createElement('div'); head.className = 'card-head';
+      const h = document.createElement('div');
+      const t = document.createElement('div'); t.className = 'card-title'; t.textContent = DOC_LEGAL[doc.doc_type];
+      const sub = document.createElement('div'); sub.className = 'card-sub'; sub.textContent = 'Última versión publicada';
+      h.append(t, sub);
+      const nueva = document.createElement('button'); nueva.className = 'btn-sm btn-ghost'; nueva.textContent = 'Nueva versión';
+      nueva.addEventListener('click', () => abrirLegal(doc.doc_type));
+      head.append(h, nueva);
+      card.appendChild(head);
+
+      const vig = document.createElement('div'); vig.className = 'lg-vigente';
+      if (doc.current) {
+        const sv = document.createElement('span'); sv.className = 'lg-semver'; sv.textContent = 'v' + doc.current.semver;
+        const det = document.createElement('span'); det.className = 'hint';
+        det.textContent = `rige desde el ${new Date(doc.current.effective_date + 'T12:00').toLocaleDateString('es-CL', {day: 'numeric', month: 'long', year: 'numeric'})}`;
+        vig.append(sv, det);
+        if (doc.current.requires_reacceptance) vig.appendChild(chip({x: ['warn', '↻ Exige volver a aceptar']}, 'x'));
+      } else {
+        vig.textContent = 'Aún no hay una versión publicada.';
+      }
+      card.appendChild(vig);
+
+      const bt = document.createElement('div'); bt.className = 'card-sub'; bt.style.marginTop = '6px';
+      bt.textContent = doc.drafts.length ? 'Borradores' : 'Sin borradores pendientes.';
+      card.appendChild(bt);
+      doc.drafts.forEach(dr => {
+        const fila = document.createElement('div'); fila.className = 'lg-draft';
+        const b = document.createElement('b'); b.textContent = 'v' + dr.semver;
+        const info = document.createElement('span'); info.className = 'hint'; info.style.margin = '0';
+        info.textContent = `${dr.created_by_name || '—'} · ${fechaHora(dr.updated_at)}`;
+        const sp = document.createElement('div'); sp.className = 'tk-spacer';
+        const pub = document.createElement('button'); pub.className = 'btn-sm'; pub.textContent = 'Publicar';
+        const msg = document.createElement('div'); msg.className = 'inline-msg';
+        pub.addEventListener('click', () => {
+          if (!confirm(`¿Publicar v${dr.semver} de ${DOC_LEGAL[doc.doc_type].toLowerCase()}? Una versión publicada ya no se puede editar.`)) return;
+          conBoton(pub, 'Publicando…', async () => {
+            try { await api(`/legal/versions/${dr.version_id}/publish`, {method: 'POST'}); loadLegales(); }
+            catch (e) { fallo(msg, e); }
+          });
+        });
+        fila.append(b, info, sp, pub);
+        card.append(fila, msg);
+      });
+      cont.appendChild(card);
+    });
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-legales', e);
+  }
+}
+
+function avisoMayor() {
+  const actual = lgDocs[lgTipo]?.current?.semver;
+  const v = $('#ml-semver').value.trim();
+  const m = /^(\d+)\.(\d+)$/.exec(v);
+  if (!m) { $('#ml-aviso').textContent = 'Formato mayor.menor, por ejemplo 2.2 o 3.0.'; return; }
+  const mayor = !actual || Number(m[1]) > Number(actual.split('.')[0]);
+  $('#ml-aviso').textContent = mayor
+    ? `Cambio mayor: todos los usuarios deberán aceptarlo de nuevo. Necesita al menos ${DIAS_AVISO_MAYOR} días de aviso.`
+    : 'Cambio menor: no exige volver a aceptar.';
+}
+
+function abrirLegal(tipo) {
+  lgTipo = tipo;
+  const actual = lgDocs[tipo]?.current?.semver;
+  $('#ml-titulo').textContent = 'Nueva versión · ' + DOC_LEGAL[tipo];
+  $('#ml-sub').textContent = actual ? `La vigente es la v${actual}. Se guarda como borrador hasta que la publiques.`
+                                    : 'Se guarda como borrador hasta que la publiques.';
+  if (actual) {
+    const [ma, mi] = actual.split('.').map(Number);
+    $('#ml-semver').value = `${ma}.${mi + 1}`;
+  } else { $('#ml-semver').value = '1.0'; }
+  const manana = new Date(); manana.setDate(manana.getDate() + 1);
+  $('#ml-date').value = manana.toISOString().slice(0, 10);
+  $('#ml-changelog').value = ''; $('#ml-content').value = '';
+  avisoMayor();
+  $('#ml-msg').classList.remove('on');
+  $('#m-legal').hidden = false;
+}
+
+async function guardarLegal() {
+  const cuerpo = {semver: $('#ml-semver').value.trim(), effective_date: $('#ml-date').value,
+                  changelog: $('#ml-changelog').value.trim(), content_md: $('#ml-content').value.trim()};
+  if (!/^\d+\.\d+$/.test(cuerpo.semver)) { aviso($('#ml-msg'), 'La versión debe tener el formato mayor.menor (por ejemplo 2.2).', 'err'); return; }
+  if (!cuerpo.effective_date) { aviso($('#ml-msg'), 'Indica desde qué fecha rige.', 'err'); return; }
+  if (cuerpo.changelog.length < 10) { aviso($('#ml-msg'), 'Resume qué cambia (mínimo 10 caracteres).', 'err'); return; }
+  if (cuerpo.content_md.length < 100) { aviso($('#ml-msg'), 'El texto completo debe tener al menos 100 caracteres.', 'err'); return; }
+  await conBoton($('#ml-save'), 'Guardando…', async () => {
+    try {
+      await api(`/legal/documents/${lgTipo}/versions`, {method: 'POST', body: cuerpo});
+      cerrar('m-legal');
+      loadLegales();
+    } catch (e) { fallo($('#ml-msg'), e); }
+  });
+}
+
+/* ---------- 3.5–3.7 · equipo de la consola ---------- */
+const stPag = {page: 1, pageSize: 25};
+let stActual = null;
+
+async function loadStaff() {
+  clearError('err-staff');
+  try {
+    const d = await api('/users?' + filtros(stPag, [['st-q', 'q'], ['st-role', 'role'], ['st-active', 'is_active']]));
+    const tb = $('#st-table tbody');
+    tb.textContent = '';
+    d.items.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', () => abrirStaff(u));
+      const nombre = td(u.full_name + (yo && u.id === yo.id ? ' (tú)' : '')); nombre.style.fontWeight = '700';
+      tr.append(nombre, td(u.email), td(ROL_STAFF[u.role] || u.role),
+                tdNode(chip({true: ['ok', '✔ Activado'], false: ['neutral', '— No']}, String(u.mfa_enabled))),
+                tdNode(chip({true: ['ok', '✔ Activa'], false: ['neutral', '■ Desactivada']}, String(u.is_active))),
+                td(u.last_login_at ? fechaHora(u.last_login_at) : 'Nunca', 'num'));
+      tb.appendChild(tr);
+    });
+    $('#st-empty').hidden = d.items.length > 0;
+    paginar('st', d);
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-staff', e);
+  }
+}
+
+function abrirStaff(u) {
+  stActual = u || null;
+  $('#ms-titulo').textContent = u ? u.full_name : 'Invitar a alguien';
+  $('#ms-sub').textContent = u ? `${u.email} · en la consola desde ${fechaCorta(u.created_at)}`
+                               : 'Recibirá un enlace de activación válido por 24 horas.';
+  $('#ms-name').value = u ? u.full_name : '';
+  $('#ms-email').value = u ? u.email : '';
+  $('#ms-email').disabled = !!u;              // el correo no se edita (3.7)
+  $('#ms-role').value = u ? u.role : 'support';
+  $('#ms-mfa').checked = false;
+  $('#ms-mfa-wrap').hidden = !!u;
+  $('#ms-active').checked = u ? u.is_active : true;
+  $('#ms-active-wrap').hidden = !u;
+  $('#ms-save').textContent = u ? 'Guardar cambios' : 'Enviar invitación';
+  $('#ms-msg').classList.remove('on');
+  $('#m-staff').hidden = false;
+  $('#ms-name').focus();
+}
+
+async function guardarStaff() {
+  const nombre = $('#ms-name').value.trim();
+  if (nombre.length < 2) { aviso($('#ms-msg'), 'Escribe el nombre completo.', 'err'); return; }
+  await conBoton($('#ms-save'), 'Guardando…', async () => {
+    try {
+      if (stActual) {
+        const cambio = {};
+        if (nombre !== stActual.full_name) cambio.full_name = nombre;
+        if ($('#ms-role').value !== stActual.role) cambio.role = $('#ms-role').value;
+        if ($('#ms-active').checked !== stActual.is_active) cambio.is_active = $('#ms-active').checked;
+        if (!Object.keys(cambio).length) { cerrar('m-staff'); return; }
+        if (cambio.is_active === false &&
+            !confirm(`¿Desactivar la cuenta de ${stActual.full_name}? Se cerrarán sus sesiones de inmediato.`)) return;
+        await api(`/users/${stActual.id}`, {method: 'PATCH', body: cambio});
+        cerrar('m-staff');
+      } else {
+        const cuerpo = {full_name: nombre, email: $('#ms-email').value.trim(), role: $('#ms-role').value};
+        if ($('#ms-mfa').checked) cuerpo.require_mfa = true;
+        const r = await api('/users', {method: 'POST', body: cuerpo});
+        aviso($('#ms-msg'), `Invitación enviada a ${r.email}. El enlace vence el ${fechaHora(r.invitation_expires_at)}.`, 'ok');
+        setTimeout(() => cerrar('m-staff'), 2500);
+      }
+      loadStaff();
+    } catch (e) { fallo($('#ms-msg'), e); }
+  });
+}
+
+/* ---------- 14 · auditoría ---------- */
+const auPag = {page: 1, pageSize: 25};
+const DIAS_MAX_AUDITORIA = 90;   // spec 14.1
+
+async function loadAuditoria() {
+  clearError('err-auditoria');
+  const p = new URLSearchParams(filtros(auPag, [['au-actor', 'actor_id'], ['au-entity', 'entity_type'], ['au-action', 'action']]));
+  const desde = $('#au-from').value, hasta = $('#au-to').value;
+  if (desde) p.set('date_from', new Date(desde + 'T00:00').toISOString());
+  if (hasta) p.set('date_to', new Date(hasta + 'T23:59:59').toISOString());
+  if (desde && hasta && (new Date(hasta) - new Date(desde)) / 864e5 > DIAS_MAX_AUDITORIA) {
+    const box = $('#err-auditoria'); box.textContent = '';
+    const d = document.createElement('div'); d.className = 'view-error';
+    d.textContent = `El rango de fechas no puede superar ${DIAS_MAX_AUDITORIA} días. Acórtalo para ver los registros.`;
+    box.appendChild(d);
+    return;
+  }
+  try {
+    const d = await api('/audit-log?' + p);
+    const tb = $('#au-table tbody');
+    tb.textContent = '';
+    d.items.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', () => abrirAuditoria(a));
+      const accion = td(a.action, 'codigo');
+      const quien = a.actor.name ? `${a.actor.name} · ${ROL_STAFF[a.actor.role] || a.actor.role || ''}` : 'Sistema';
+      tr.append(td(fechaHora(a.created_at)), td(quien), accion,
+                td(ENTIDAD[a.entity_type] || a.entity_type || '—'), td(a.ip || '—', 'codigo'));
+      tb.appendChild(tr);
+    });
+    $('#au-empty').hidden = d.items.length > 0;
+    paginar('au', d);
+    setFreshness(null);
+  } catch (e) {
+    if (e.status !== 401) showError('err-auditoria', e);
+  }
+}
+
+function abrirAuditoria(a) {
+  $('#ma-accion').textContent = a.action;
+  $('#ma-sub').textContent = fechaHora(a.created_at);
+  fichaDl($('#ma-ficha'), [
+    ['Quién', a.actor.name ? `${a.actor.name} (${ROL_STAFF[a.actor.role] || a.actor.role})` : 'Sistema'],
+    ['Sobre', `${ENTIDAD[a.entity_type] || a.entity_type || '—'}${a.entity_id ? ' · ' + a.entity_id.slice(0, 8) : ''}`],
+    ['IP', a.ip || '—'],
+    ['Navegador', a.user_agent || '—'],
+  ]);
+  $('#ma-before').textContent = a.before ? json(a.before) : '—';
+  $('#ma-after').textContent = a.after ? json(a.after) : '—';
+  $('#m-audit').hidden = false;
+}
+
+async function initSistema() {
+  opciones($('#st-role'), ROL_STAFF, 'Todos los roles');
+  opciones($('#ms-role'), ROL_STAFF);
+  opciones($('#au-entity'), ENTIDAD, 'Cualquier entidad');
+  opciones($('#au-actor'), {}, 'Cualquier persona');
+
+  $('#mf-cancel').addEventListener('click', () => cerrar('m-config'));
+  $('#mf-save').addEventListener('click', guardarConfig);
+
+  $('#ml-cancel').addEventListener('click', () => cerrar('m-legal'));
+  $('#ml-save').addEventListener('click', guardarLegal);
+  $('#ml-semver').addEventListener('input', avisoMayor);
+
+  alFiltrar(['st-q', 'st-role', 'st-active'], stPag, loadStaff);
+  enlazarPaginas('st', stPag, loadStaff);
+  $('#st-new').addEventListener('click', () => abrirStaff(null));
+  $('#ms-cancel').addEventListener('click', () => cerrar('m-staff'));
+  $('#ms-save').addEventListener('click', guardarStaff);
+  $('#ms-role').addEventListener('change', () => {
+    if (!stActual) $('#ms-mfa').checked = $('#ms-role').value === 'admin';
+  });
+
+  alFiltrar(['au-actor', 'au-entity', 'au-action', 'au-from', 'au-to'], auPag, loadAuditoria);
+  enlazarPaginas('au', auPag, loadAuditoria);
+  $('#ma-close').addEventListener('click', () => cerrar('m-audit'));
+
+  // Filtro por persona: lista del staff (el registro guarda el id).
+  if (yo && yo.permissions.includes('staff')) {
+    try {
+      const d = await api('/users?page_size=100');
+      const sel = $('#au-actor');
+      d.items.forEach(u => sel.appendChild(new Option(u.full_name, u.id)));
+    } catch (_) { /* el filtro queda solo con "Cualquier persona" */ }
+  }
+}
+
+/* ================================================================
    ARRANQUE
 ================================================================ */
 async function boot() {
@@ -2624,6 +3115,7 @@ async function boot() {
   puedeEscribir = ['admin', 'support'].includes(me.role);
   initTickets();
   initOperacion();
+  initSistema();
 
   const initials = me.full_name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   $('#sf-avatar').textContent = initials;
