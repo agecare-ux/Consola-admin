@@ -180,9 +180,11 @@ API sobre `public` y el doble seed de los tests. Hoy:
   el prototipo, fallaría de inmediato.
 - `aplicar_modelo.py --rol-api` retira esos permisos en las bases donde se habían
   concedido (es idempotente).
-- Las tablas del prototipo en `public` y la revisión Alembic `0001` siguen existiendo,
-  sin uso. Borrarlas queda como limpieza opcional, junto con `app/models.py` y
-  `scripts/seed.py`.
+- El código del prototipo ya no está: se eliminaron `app/models.py`, `scripts/seed.py`
+  y la revisión Alembic `0001` (la `0002` pasó a ser la primera). Las tablas que esa
+  revisión creó en `public` pueden quedar en bases antiguas; `verificar_base.py`
+  avisa si las encuentra y `retirar_prototipo.py --confirmar` las borra. No
+  ejecutarlo en la base de producción mientras `main` siga con el prototipo.
 
 **Particiones del registro de auditoría.** `audit_log` está particionada por mes y una
 fila sin partición hace fallar la escritura (y con ella el login). El DDL solo prepara

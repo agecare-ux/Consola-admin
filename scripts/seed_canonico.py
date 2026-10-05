@@ -1,10 +1,9 @@
 """Siembra datos de demostración en el esquema canónico `admin`.
 
-Equivalente a scripts/seed.py pero contra el modelo de datos definitivo. Reutiliza
-sus constantes y su simulación —las funcionalidades, la adopción, el reparto por
-plan y por perfil— para que las cifras sigan cuadrando entre sí como ya conseguimos:
-los KPIs, la tabla de planes, el embudo y las tarjetas de perfil hablan del mismo
-total de usuarios activos.
+Las constantes de la simulación —funcionalidades, adopción, reparto por plan y por
+perfil— están en scripts/datos_demo.py, para que las cifras cuadren entre sí: los
+KPIs, la tabla de planes, el embudo y las tarjetas de perfil hablan del mismo total
+de usuarios activos.
 
 Lo que NO siembra, porque ya viene con el DDL: los doce catálogos (roles de staff y
 de la app, permisos, planes, categorías de ticket, componentes, procesos críticos,
@@ -15,7 +14,7 @@ Tampoco siembra las tablas de evento (`feature_usage_events`, `ops_component_che
 alimentarían los jobs de agregación, y las segundas se llenan solas por trigger.
 
 Uso:
-    set ADMIN_DATABASE_URL=postgresql+asyncpg://usuario:clave@host/neondb?ssl=require
+    $env:ADMIN_DATABASE_URL = "CADENA_DE_NEON_TAL_CUAL"   # o una base local
     python -m scripts.seed_canonico
 
 Es idempotente: borra lo que siembra antes de volver a escribirlo.
@@ -33,8 +32,8 @@ from app import models_canonico as M
 from app.config import get_settings
 from app.security import hash_password
 from scripts import datos_demo as D
-from scripts.seed import (ACTIVE_30D, ADOPTION, FEATURES, MFA_SECRET_DEMO, NOW, PAID_PLANS,
-                          ROLE_ORDER, TODAY, mrr_for, split_by_role, split_paying)
+from scripts.datos_demo import (ACTIVE_30D, ADOPTION, FEATURES, MFA_SECRET_DEMO, NOW, PAID_PLANS,
+                                ROLE_ORDER, TODAY, mrr_for, split_by_role, split_paying)
 
 TENANT = uuid.UUID(get_settings().tenant_id)
 FREE_CHURN = .029

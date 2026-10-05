@@ -46,6 +46,8 @@ async def main(url: str) -> int:
         tenants = await contar(conn, "select count(*) from admin.tenants") if esquema else None
         staff = await contar(conn, "select count(*) from admin.admin_users") if esquema else None
         tickets = await contar(conn, "select count(*) from admin.support_tickets") if esquema else None
+        prototipo = await contar(conn, "select count(*) from pg_tables where schemaname = 'public' "
+                                 "and tablename not in ('alembic_version')")
         rol_grupo = await conn.fetchval("select count(*) from pg_roles where rolname = 'agecare_admin_api'")
         logins_api = await conn.fetch(
             "select r.rolname from pg_roles r join pg_auth_members m on m.member = r.oid "
@@ -77,6 +79,9 @@ async def main(url: str) -> int:
     linea(auditoria_ok, "Registro de auditoría preparado hasta: "
           + (auditoria_hasta.strftime("%Y-%m") if auditoria_hasta else "sin particiones"))
 
+    if prototipo:
+        print(f"  [i] Quedan {prototipo} tablas del prototipo en public, sin uso: "
+              "python -m scripts.retirar_prototipo")
     print()
     if not esquema or tablas != ESPERADO_TABLAS:
         print("Falta el DDL:      python -m scripts.aplicar_modelo")

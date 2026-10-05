@@ -6,8 +6,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
 
 from app.config import get_settings
-from app.database import Base
-from app import models  # noqa: F401  (registra todas las tablas)
+from app.models_canonico import Base  # el esquema lo define el DDL; esto es solo referencia
 
 config = context.config
 if config.config_file_name is not None:

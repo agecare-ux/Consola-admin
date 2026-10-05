@@ -13,8 +13,7 @@ Qué hace además de generar:
   - mapea solo las 58 tablas lógicas, dejando fuera las particiones;
   - renombra quince clases a los nombres que ya usan los routers, para que la fase 3
     sean cambios de columna y no de nombre;
-  - declara una Base propia, separada de la del prototipo, para que las dos metadatas
-    no se mezclen mientras conviven.
+  - declara su propia Base declarativa.
 """
 import argparse
 import os
@@ -55,19 +54,17 @@ ARCHIVO GENERADO. No editar a mano: se regenera con
 a partir de la base creada por modelo/agecare_admin_ddl.sql, que es la fuente de
 verdad. Los modelos la reflejan, no al revés.
 
-Estado: fase 1 de la migración. Todavía NO lo usa la aplicación, que sigue sobre
-app/models.py (esquema del prototipo, 22 tablas sin tenant). El cambio de uno a otro
-se hace en la fase 3, junto con la adaptación de los routers, para que la rama siga
-funcionando mientras tanto.
+Es el único modelo de la aplicación desde el cierre de la fase 3 (el del prototipo,
+app/models.py, se eliminó).
 
 Quince clases llevan el nombre que ya usa el código (AdminUser, Ticket, TicketReply,
 ContentItem, Product, CaregiverProfile, ModerationItem, SystemSetting, LegalVersion,
 Incident, Feature, ComponentState, LatencyWindow, CriticalProcessState, AdminSession)
-para que la fase 3 sea sobre todo cambios de columna y no de nombre.
+heredado del prototipo, para que la migración fuera sobre todo de columnas.
 
-Diferencia principal con el prototipo: casi todas las tablas llevan tenant_id, y el
-esquema impone por trigger las reglas que hoy validamos en Python (transiciones de
-estado, bloqueo optimista, inmutabilidad del registro de auditoría, moderación única).
+Casi todas las tablas llevan tenant_id, y el esquema impone por trigger reglas de
+negocio (transiciones de estado, bloqueo optimista, inmutabilidad del registro de
+auditoría, moderación única).
 """
 '''
 
@@ -122,12 +119,7 @@ class Base(DeclarativeBase):
 
 
 class Base(DeclarativeBase):
-    """Base propia, separada de la de app/models.py.
-
-    Compartirla mezclaría las 22 tablas del prototipo con las 58 canónicas en una
-    sola metadata, y create_all() intentaría crear ambas. Se unifican en la fase 3,
-    cuando el prototipo desaparezca.
-    """
+    """Base declarativa del esquema canónico."""
 
 
 metadata = Base.metadata

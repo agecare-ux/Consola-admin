@@ -23,7 +23,7 @@ import asyncio
 import re
 import sys
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 import asyncpg
 
@@ -48,12 +48,21 @@ def normalizar(url: str) -> str:
 def ssl_para(url: str):
     """Cifrado según el destino: obligatorio en la nube, opcional en local.
 
-    Neon exige SSL. El PostgreSQL que instala el instalador de Windows viene sin SSL,
-    y pedir `require` contra él hace fallar la conexión. En local se deja que asyncpg
-    negocie (usa SSL si el servidor lo ofrece y, si no, conecta sin él).
+    1. Si la URL lo dice (sslmode= o ssl=, como en las cadenas de Neon), manda eso.
+    2. Si no, en local (localhost o un servicio de Docker como `db`, sin punto en el
+       nombre) se deja que asyncpg negocie: el PostgreSQL de Windows y la imagen de
+       Docker vienen sin SSL, y pedir `require` haría fallar la conexión.
+    3. Cualquier otro host remoto exige SSL.
     """
+    url = url.strip().strip('"').strip("'")
+    consulta = dict(parse_qsl(urlsplit(url).query))
+    pedido = consulta.get("sslmode") or consulta.get("ssl")
+    if pedido in ("disable", "allow", "prefer", "require", "verify-ca", "verify-full"):
+        return pedido
     host = (urlsplit(normalizar(url)).hostname or "").lower()
-    return "prefer" if host in ("localhost", "127.0.0.1", "::1") else "require"
+    if host in ("localhost", "127.0.0.1", "::1") or "." not in host:
+        return "prefer"
+    return "require"
 
 
 def sin_metacomandos(sql: str) -> str:

@@ -1,7 +1,7 @@
 """Modelo de datos canónico: crea el esquema admin con sus 58 tablas.
 
 Revision ID: 0002
-Revises: 0001
+Revises: —
 Create Date: 2026-09-24
 
 Aplica modelo/agecare_admin_ddl.sql tal cual, sin traducirlo a operaciones de
@@ -14,10 +14,10 @@ adapta.
 El DDL es idempotente, así que esta migración se puede aplicar sobre una base que
 ya lo tenga sin romper nada.
 
-Durante la transición conviven los dos esquemas: el prototipo en `public` (que crea
-la revisión 0001) y el canónico en `admin`. Al terminar la fase 3, cuando la
-aplicación pase a usar app/models_canonico.py, se elimina la 0001 y `public` queda
-vacío.
+Es la primera revisión: la 0001, que creaba las tablas del prototipo en `public`,
+se eliminó al cerrar la fase 3 (la API ya no las usa). Las bases que la tenían
+aplicada siguen en la 0002 y no requieren nada; para borrar esas tablas está
+scripts/retirar_prototipo.py.
 """
 from pathlib import Path
 
@@ -25,7 +25,7 @@ from alembic import op
 from sqlalchemy.util import await_only
 
 revision = "0002"
-down_revision = "0001"
+down_revision = None
 branch_labels = None
 depends_on = None
 

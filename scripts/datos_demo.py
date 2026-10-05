@@ -1,13 +1,12 @@
-"""Datos de demostración compartidos por los dos seeds.
+"""Datos de demostración del seed canónico (scripts/seed_canonico.py).
 
-scripts/seed.py siembra el esquema del prototipo y scripts/seed_canonico.py el
-esquema canónico. Los dos usan estos mismos textos para que la demo se vea igual
-mire quien la mire, y para que cambiar un chiste o una cuidadora no haya que
-hacerlo en dos sitios.
-
-Se mantiene aparte, y no dentro de uno de los seeds, porque el del prototipo
-desaparecerá al terminar la migración.
+Textos (tickets, contenido, cuidadoras, moderación) y cifras base de la simulación
+de métricas, separados del código que los inserta para poder ajustarlos sin tocar
+la lógica del seed.
 """
+from datetime import date, datetime, timezone
+
+from app.enums import PlanCode
 
 subjects = [
     ("Wearable no sincroniza desde ayer", "wearable_sync", "high", "in_progress", "family"),
@@ -136,3 +135,96 @@ PENDIENTES = [
      {"name": "Usuario Demo 2", "role": "family"}, "Aparece la receta médica completa", True),
     ("review", "Familia Contreras", "family", {"rating": 4, "text": "Muy buena, aunque le costó el primer día."}, None, None, False),
 ]
+
+
+# =====================================================================
+# Cifras base de la simulación de métricas
+# =====================================================================
+# Fecha de referencia del seed. Se ancla al día de ejecución para que los periodos
+# "hoy", "semana en curso" y "mes en curso" de la consola tengan datos reales.
+TODAY = date.today()
+NOW = datetime.now(timezone.utc)
+
+FEATURES = [
+    # Catálogo oficial del modelo de datos (admin.features y admin.feature_roles).
+    # El equipo decidió trabajar con estas diez; las cinco del wireframe que el modelo
+    # no recoge (centro de alertas, vitals, bitácora, chat y documentos médicos) se
+    # valorarán más adelante. Ojo: el modelo no solo quita funciones, también cambia
+    # nombres y a qué perfiles aplica cada una, así que ambas cosas vienen de él.
+    # key, nombre, roles aplicables, expected_low, nota, orden
+    ("home_traffic_light", "Inicio / semáforo", ["caregiver", "family"], False,
+     "La promesa central del producto.", 1),
+    ("medications", "Medicamentos", ["caregiver", "doctor", "elder", "family"], False, None, 2),
+    ("checkin", "Check-in diario", ["caregiver", "elder"], False, None, 3),
+    ("photos", "Fotos", ["elder", "family"], False, None, 4),
+    ("entertainment", "Entretenimiento curado", ["elder"], False, None, 5),
+    ("ai_assistant", "Asistente IA", ["caregiver", "doctor", "family"], False,
+     "Evaluar resúmenes clínicos automáticos para médicos.", 6),
+    ("marketplace", "Marketplace", ["caregiver", "family"], False,
+     "Vitrina Could de v1 con adopción marginal. Decidir: rediseñar el descubrimiento o posponer a fase 2.", 7),
+    ("premium_reports", "Reportes premium", ["family"], False,
+     "Función de pago poco descubierta; probar oferta contextual tras 30 días de uso.", 8),
+    ("sos", "SOS", ["caregiver", "elder"], True,
+     "Uso bajo por diseño: es un evento de emergencia, no una función de uso diario.", 9),
+    ("music_director", "Director Musical", ["caregiver", "elder"], False, None, 10),
+]
+
+# Adopción (%) por rol [family, caregiver, elder, doctor] — igual que el wireframe
+ADOPTION = {
+    # Porcentajes del wireframe, con None donde la función no aplica al perfil según
+    # admin.feature_roles. Orden de las columnas: family, caregiver, elder, doctor.
+    "home_traffic_light": [92, 88, None, None],
+    "medications":        [69, 91, 34, 72],
+    "checkin":            [None, 86, 41, None],
+    "photos":             [58, None, 66, None],
+    "entertainment":      [None, None, 54, None],
+    "ai_assistant":       [41, 18, None, 9],
+    "marketplace":        [11, 6, None, None],
+    "premium_reports":    [9, None, None, None],
+    "sos":                [None, 4, 2, None],
+    "music_director":     [None, 19, 38, None],
+}
+ACTIVE_30D = {"family": 5310, "caregiver": 1470, "elder": 2640, "doctor": 420}
+ROLE_ORDER = ["family", "caregiver", "elder", "doctor"]
+
+# Secreto TOTP fijo de la cuenta de demostración con segundo factor.
+MFA_SECRET_DEMO = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+
+# --- Coherencia de cifras -----------------------------------------------------
+# Las cifras del wireframe se tratan como una MEZCLA (proporciones), no como
+# totales absolutos. El seed las escala al cierre de la simulación diaria para que
+# los KPIs, la tabla de planes, el embudo y las tarjetas de perfil cuadren entre sí.
+ROLE_MIX_TOTAL = sum(ACTIVE_30D.values())                  # 9.840 usuarios activos
+PAID_PLANS = [(PlanCode.gold, 610, 1000, .041),            # (plan, peso, precio CLP, churn)
+              (PlanCode.platinum, 240, 10000, .022),
+              (PlanCode.provider, 90, 5000, .018)]
+PAID_MIX_TOTAL = sum(w for _, w, _, _ in PAID_PLANS)       # 940 usuarios de pago
+FREE_CHURN = .029
+
+
+def split_paying(total: int) -> list[tuple]:
+    """Reparte los usuarios de pago entre planes conservando la mezcla del wireframe.
+
+    El último plan absorbe el resto de la división para que la suma cuadre exacta.
+    """
+    rows, assigned = [], 0
+    for i, (code, weight, price, churn) in enumerate(PAID_PLANS):
+        users = total - assigned if i == len(PAID_PLANS) - 1 else round(total * weight / PAID_MIX_TOTAL)
+        assigned += users
+        rows.append((code, users, price, churn))
+    return rows
+
+
+def mrr_for(paying_total: int) -> int:
+    """MRR derivado de la mezcla real de planes, no de un ARPU aproximado."""
+    return sum(users * price for _, users, price, _ in split_paying(paying_total))
+
+
+def split_by_role(total: int) -> dict[str, int]:
+    """Reparte un total de usuarios activos entre perfiles con la mezcla del wireframe."""
+    out, assigned = {}, 0
+    for i, role in enumerate(ROLE_ORDER):
+        users = total - assigned if i == len(ROLE_ORDER) - 1 else round(total * ACTIVE_30D[role] / ROLE_MIX_TOTAL)
+        assigned += users
+        out[role] = users
+    return out

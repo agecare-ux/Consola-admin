@@ -40,11 +40,14 @@ async def test_periodos_en_hora_local_del_tenant(client, analyst_headers):
     assert r.status_code == 200, r.text
     (tz,) = (await _sql("select timezone from admin.tenants limit 1"))[0]
     buckets = r.json()["buckets"]
-    if buckets:  # a primera hora del día puede no haber datos aún
-        inicio = datetime.fromisoformat(buckets[0]["start"].replace("Z", "+00:00"))
-        from zoneinfo import ZoneInfo
-        local = inicio.astimezone(ZoneInfo(tz))
-        assert (local.hour, local.minute) == (0, 0)  # medianoche local, no UTC
+    from zoneinfo import ZoneInfo
+    zona = ZoneInfo(tz)
+    hoy_local = datetime.now(zona).date()
+    # El seed solo trae las últimas 8 horas: no se exige que empiece a medianoche,
+    # sino que todo cubo caiga dentro del día local de hoy (y no del día UTC).
+    for b in buckets:
+        local = datetime.fromisoformat(b["start"].replace("Z", "+00:00")).astimezone(zona)
+        assert local.date() == hoy_local and local.minute == 0
 
 
 async def test_ventana_de_perfiles_es_la_menor_que_cubre(client, analyst_headers):

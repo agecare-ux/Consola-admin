@@ -25,9 +25,11 @@ services:
       ADMIN_JWT_SECRET: solo-para-desarrollo
     ports:
       - "8000:8000"
+    # Aplica el modelo canónico (idempotente) y siembra los datos de demo en cada
+    # arranque: la base local siempre parte del mismo estado conocido.
     command: >
-      sh -c "alembic upgrade head &&
-             python -m scripts.seed &&
+      sh -c "python -m scripts.aplicar_modelo &&
+             python -m scripts.seed_canonico &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 volumes:

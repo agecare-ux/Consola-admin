@@ -1,9 +1,10 @@
 # AgeCare — Admin API
 
 Backend de la **Consola de Administración** de AgeCare (Wellq Co).
-FastAPI · Python 3.12 · SQLAlchemy 2 async · PostgreSQL 16 · Alembic.
+FastAPI · Python 3.12 · SQLAlchemy 2 async · PostgreSQL 16.
 
-Implementa los 45 endpoints de la *Especificación de Endpoints — Consola de
+Corre sobre el **modelo de datos canónico** (esquema `admin`, multi-tenant con
+seguridad por fila); ver `modelo/README.md`. Implementa los 50 endpoints de la *Especificación de Endpoints — Consola de
 Administración v1*: autenticación de staff con MFA, las cuatro secciones
 analíticas del wireframe (uso comercial, estado operativo, usuarios y soporte,
 uso por funcionalidad) y los módulos de operación (tickets, curación de
@@ -16,8 +17,8 @@ auditoría).
 docker compose up --build
 ```
 
-Levanta PostgreSQL, aplica la migración, siembra datos demo y sirve la API en
-`http://localhost:8000`. Documentación interactiva (Swagger):
+Levanta PostgreSQL, aplica el modelo canónico, siembra datos demo y sirve la
+consola en `http://localhost:8000`. Documentación interactiva (Swagger):
 `http://localhost:8000/api/v1/admin/docs`.
 
 ## Arranque manual
@@ -26,9 +27,10 @@ Levanta PostgreSQL, aplica la migración, siembra datos demo y sirve la API en
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env                  # ajusta ADMIN_DATABASE_URL si hace falta
-alembic upgrade head                  # crea las tablas
-python -m scripts.seed                # datos demo del wireframe
-uvicorn app.main:app --reload
+python -m scripts.aplicar_modelo --rol-api "agecare_api:CLAVE"   # DDL + rol de la API (como propietario)
+python -m scripts.seed_canonico       # datos demo del wireframe (como propietario)
+python -m scripts.verificar_base      # comprueba que la base quedó lista
+uvicorn app.main:app --reload         # la API, conectada como agecare_api
 ```
 
 ## Credenciales demo (seed)
@@ -39,8 +41,10 @@ uvicorn app.main:app --reload
 | soporte@wellq.co.uk | Soporte123! | soporte |
 | analista@wellq.co.uk | Analista123! | analista |
 | editora@wellq.co.uk | Editora123! | editor |
+| moderador@wellq.co.uk | Moderador123! | moderador |
+| admin.mfa@wellq.co.uk | AdminMfa123! | admin con segundo factor (TOTP) |
 
-(Sin MFA para facilitar la prueba; en producción el rol admin exige TOTP.)
+Solo la cuenta `admin.mfa` pide código TOTP, para poder probar ese flujo.
 
 ## Probar con curl
 
@@ -78,11 +82,15 @@ curl -s "$BASE/metrics/features/alerts?threshold=0.15" -H "$AUTH"
 ## Tests
 
 ```bash
-pytest            # 23 pruebas: auth/roles, métricas, tickets, settings, auditoría
+pytest                          # 46 pruebas
+python -m scripts.audit_spec    # conformidad con la especificación (96 comprobaciones)
+python -m scripts.audit_roles   # matriz de permisos por rol
 ```
 
-La suite corre sobre SQLite en memoria (sin PostgreSQL) gracias a tipos
-portables; el despliegue real usa PostgreSQL vía `ADMIN_DATABASE_URL`.
+La suite necesita un PostgreSQL 16 (por defecto `localhost`, usuario y clave
+`postgres`; se cambia con `ADMIN_TEST_DATABASE_URL`). Crea una base temporal,
+aplica el DDL, siembra y corre la API con su rol propio, sujeta a la seguridad
+por fila. Las dos auditorías usan la base de `ADMIN_DATABASE_URL`.
 
 ## Estructura
 
@@ -91,17 +99,24 @@ app/
   config.py        Configuración (pydantic-settings, prefijo ADMIN_)
   database.py      Engine async + sesión por petición
   errors.py        Formato estándar de error {error:{code,message,details,request_id}}
-  enums.py         Enumeraciones y matriz de permisos por rol
+  enums.py         Enumeraciones (la matriz de permisos vive en la base)
   security.py      Argon2id, JWT (access 15 min / refresh 12 h rotatorio), TOTP
   deps.py          get_current_admin, require(módulo, write=…)
   audit.py         Escritura de audit_log con enmascarado de campos sensibles
-  periods.py       Resolución de PeriodKey en America/Santiago + buckets
-  models.py        Tablas: staff, agregadas de métricas, ops, tickets, contenido,
-                   marketplace, moderación, settings, legales, audit_log
+  periods.py       Resolución de PeriodKey en la zona horaria del tenant + buckets
+  staff.py         Nombres de staff para las respuestas (creado por, revisado por…)
+  models_canonico.py  Modelos del esquema admin (generado desde el DDL)
   schemas/         Esquemas Pydantic por módulo
   routers/         Un router por módulo (prefijo común /api/v1/admin)
-alembic/           Migración inicial
-scripts/seed.py    Datos demo coherentes con el wireframe de la consola
+  static/console.html  La consola (una sola página, sin build)
+modelo/            Modelo canónico: DDL (fuente de verdad), DBML, diagramas, README
+alembic/           Revisión 0002: aplica el DDL canónico
+scripts/
+  aplicar_modelo.py     DDL, rol de la API y particiones de auditoría
+  seed_canonico.py      Datos demo coherentes con el wireframe
+  verificar_base.py     Diagnóstico de una base (solo lectura)
+  retirar_prototipo.py  Borra las tablas del prototipo que queden en public
+  audit_spec.py, audit_roles.py   Auditorías contra la especificación
 tests/             pytest + httpx (asyncio)
 ```
 

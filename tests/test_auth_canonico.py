@@ -14,7 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
-from scripts.seed import MFA_SECRET_DEMO
+from scripts.datos_demo import MFA_SECRET_DEMO
 
 BASE = "/api/v1/admin"
 pytestmark = pytest.mark.asyncio

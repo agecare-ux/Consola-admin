@@ -80,9 +80,9 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
   .logo-name{color:#fff;font-weight:700;font-size:15px;line-height:1.1}
   .logo-sub{font-size:10.5px;color:var(--sidebar-ink);margin-top:2px}
-  .nav{flex:1;overflow-y:auto;padding:6px 10px 10px}
+  .nav{flex:1;overflow-y:auto;padding:4px 10px 10px;scrollbar-width:thin;scrollbar-color:#2B4260 transparent}
   .nav-group{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    color:#6b7686;padding:16px 10px 6px}
+    color:#6b7686;padding:14px 10px 6px}
   .nav-toggle{display:flex;align-items:center;width:100%;border:none;background:none;cursor:pointer;
     font-family:inherit;text-align:left;border-radius:9px}
   .nav-toggle:hover{color:#C6CDD8}
@@ -91,14 +91,12 @@
   .nav-toggle[aria-expanded="true"] .chev{transform:rotate(90deg)}
   .nav-group[hidden]{display:none}
   @media (prefers-reduced-motion:reduce){.nav-toggle .chev{transition:none}}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;
+  .nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;
     cursor:pointer;font-size:13.5px;color:var(--sidebar-ink);margin-bottom:2px;border:none;background:none;width:100%;text-align:left;font-family:inherit}
   .nav-item:hover{background:rgba(255,255,255,.05);color:#e8edf4}
   .nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600;
     box-shadow:inset 3px 0 0 var(--brand)}
   .nav-item .ico{width:20px;text-align:center;font-size:15px;flex-shrink:0}
-  .nav-item .soon{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.04em;
-    color:#7d8898;border:1px solid #313c4d;border-radius:6px;padding:2px 6px}
   .sidebar-foot{border-top:1px solid #232d3c;padding:12px 16px;display:flex;align-items:center;gap:10px}
   .sf-avatar{width:32px;height:32px;border-radius:50%;background:#31507f;color:#cfe0fb;
     display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px}
@@ -417,21 +415,27 @@
     </div>
   </div>
   <nav class="nav">
-    <div class="nav-group">Analítica</div>
-    <button class="nav-item active" data-view="comercial" data-perm="metrics"><span class="ico">📈</span>Uso comercial</button>
-    <button class="nav-item" data-view="operativo" data-perm="ops"><span class="ico">🖥️</span>Estado operativo</button>
-    <button class="nav-item" data-view="usuarios" data-perm="support"><span class="ico">👥</span>Usuarios y soporte</button>
-    <button class="nav-item" data-view="funcional" data-perm="metrics"><span class="ico">🧩</span>Uso por funcionalidad</button>
-    <div class="nav-group">Operación</div>
-    <button class="nav-item" data-view="tickets" data-perm="support"><span class="ico">🎫</span>Tickets de soporte</button>
-    <button class="nav-item" data-view="contenido" data-perm="content"><span class="ico">📰</span>Curación de contenido</button>
-    <button class="nav-item" data-view="catalogos" data-perm="marketplace"><span class="ico">🛍️</span>Catálogos marketplace</button>
-    <button class="nav-item" data-view="moderacion" data-perm="moderation"><span class="ico">🛡️</span>Moderación</button>
-    <!-- Sistema se pliega: con todos los módulos visibles el menú no cabía en pantallas bajas -->
-    <button class="nav-group nav-toggle" id="nav-sistema-btn" aria-expanded="false" aria-controls="nav-sistema">
-      Sistema<span class="chev" aria-hidden="true">›</span>
-    </button>
-    <div class="nav-sub" id="nav-sistema" hidden>
+    <!-- Menú en acordeón: un grupo abierto a la vez (el de la sección activa), así
+         el menú cabe sin barra de desplazamiento incluso en pantallas de 768 px. -->
+    <button class="nav-group nav-toggle" aria-expanded="true" aria-controls="nav-g-analitica">
+      Analítica<span class="chev" aria-hidden="true">›</span></button>
+    <div class="nav-sub" id="nav-g-analitica">
+      <button class="nav-item active" data-view="comercial" data-perm="metrics"><span class="ico">📈</span>Uso comercial</button>
+      <button class="nav-item" data-view="operativo" data-perm="ops"><span class="ico">🖥️</span>Estado operativo</button>
+      <button class="nav-item" data-view="usuarios" data-perm="support"><span class="ico">👥</span>Usuarios y soporte</button>
+      <button class="nav-item" data-view="funcional" data-perm="metrics"><span class="ico">🧩</span>Uso por funcionalidad</button>
+    </div>
+    <button class="nav-group nav-toggle" aria-expanded="false" aria-controls="nav-g-operacion">
+      Operación<span class="chev" aria-hidden="true">›</span></button>
+    <div class="nav-sub" id="nav-g-operacion" hidden>
+      <button class="nav-item" data-view="tickets" data-perm="support"><span class="ico">🎫</span>Tickets de soporte</button>
+      <button class="nav-item" data-view="contenido" data-perm="content"><span class="ico">📰</span>Curación de contenido</button>
+      <button class="nav-item" data-view="catalogos" data-perm="marketplace"><span class="ico">🛍️</span>Catálogos marketplace</button>
+      <button class="nav-item" data-view="moderacion" data-perm="moderation"><span class="ico">🛡️</span>Moderación</button>
+    </div>
+    <button class="nav-group nav-toggle" aria-expanded="false" aria-controls="nav-g-sistema">
+      Sistema<span class="chev" aria-hidden="true">›</span></button>
+    <div class="nav-sub" id="nav-g-sistema" hidden>
       <button class="nav-item" data-view="config" data-perm="settings"><span class="ico">⚙️</span>Configuración</button>
       <button class="nav-item" data-view="legales" data-perm="legal"><span class="ico">📜</span>Legales y privacidad</button>
       <button class="nav-item" data-view="staff" data-perm="staff"><span class="ico">🪪</span>Equipo de la consola</button>
@@ -1527,14 +1531,19 @@ const LOADERS = {comercial: null, operativo: loadOperativo, usuarios: loadUsuari
                  legales: loadLegales, staff: loadStaff, auditoria: loadAuditoria};
 const loaded = {};
 
-/* Grupo Sistema plegable. Se abre solo al entrar a una de sus secciones y el
-   estado elegido se recuerda durante la sesión del navegador. */
-function plegarSistema(abierto) {
-  $('#nav-sistema').hidden = !abierto;
-  $('#nav-sistema-btn').setAttribute('aria-expanded', String(abierto));
-  try { sessionStorage.setItem('ac_nav_sistema', abierto ? '1' : '0'); } catch (_) {}
+/* Menú en acordeón: abrir un grupo cierra los demás. El grupo de la sección activa
+   se abre solo; cerrar el grupo abierto deja todos plegados. */
+function abrirGrupo(sub) {
+  document.querySelectorAll('.nav-sub').forEach(g => {
+    const abierto = g === sub;
+    g.hidden = !abierto;
+    document.querySelector(`[aria-controls="${g.id}"]`).setAttribute('aria-expanded', String(abierto));
+  });
 }
-$('#nav-sistema-btn').addEventListener('click', () => plegarSistema($('#nav-sistema').hidden));
+document.querySelectorAll('.nav-toggle').forEach(t => t.addEventListener('click', () => {
+  const sub = $('#' + t.getAttribute('aria-controls'));
+  abrirGrupo(sub.hidden ? sub : null);
+}));
 
 /* Oculta el título de un grupo cuando el rol no ve ninguna de sus secciones. */
 function ocultarGruposVacios() {
@@ -1550,7 +1559,7 @@ function ocultarGruposVacios() {
 
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.closest('#nav-sistema')) plegarSistema(true);
+    abrirGrupo(btn.closest('.nav-sub'));
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const v = btn.dataset.view;
@@ -3163,9 +3172,6 @@ async function boot() {
     b.hidden = !perms.has(b.dataset.perm);
   });
   ocultarGruposVacios();
-  let sistemaAbierto = false;
-  try { sistemaAbierto = sessionStorage.getItem('ac_nav_sistema') === '1'; } catch (_) {}
-  plegarSistema(sistemaAbierto);
 
   // Abrir la primera sección visible, no necesariamente Uso comercial.
   const first = [...document.querySelectorAll('.nav-item')].find(b => !b.hidden);
