@@ -1,5 +1,5 @@
-"""Sección 5 — Estado operativo (esquema canónico)."""
-from datetime import datetime, timedelta, timezone
+"""Sección 5 — Estado operativo."""
+from datetime import timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request

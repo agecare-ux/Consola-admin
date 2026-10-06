@@ -37,7 +37,7 @@ def now_utc() -> datetime:
 
 
 def as_utc(dt: datetime | None) -> datetime | None:
-    """Normaliza datetimes leídos de la BD: SQLite (tests) los devuelve naive."""
+    """Garantiza un datetime con zona UTC (los valores sin zona se asumen UTC)."""
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
@@ -49,8 +49,8 @@ def create_access_token(admin_id: UUID, role: str, tenant_id: str | None = None)
         "sub": str(admin_id),
         "role": role,
         # El tenant viaja en el token para que cada petición pueda declararlo sin
-        # volver a consultarlo. Hoy es el mismo para todos; cuando se decida cómo
-        # resolverlo en el login (punto abierto 9.1), solo cambia quién lo calcula.
+        # volver a consultarlo. Mientras el login use un tenant fijo (punto abierto
+        # 9.1 del modelo de datos), solo cambiaría quién lo calcula.
         "tenant": tenant_id or s.tenant_id,
         "type": "access",
         "iat": int(now_utc().timestamp()),

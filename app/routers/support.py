@@ -1,4 +1,4 @@
-"""Secciones 6 (KPIs de soporte) y 8 — Tickets de soporte (esquema canónico)."""
+"""Secciones 6 (KPIs de soporte) y 8 — Tickets de soporte."""
 from datetime import timedelta
 from uuid import UUID
 

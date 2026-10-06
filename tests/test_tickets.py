@@ -1,4 +1,4 @@
-"""Tickets (8.3–8.4) sobre el esquema canónico: lo que cambió en la fase 3."""
+"""Tickets (8.3–8.4): numeración, enlace con la cuenta, asignación y reapertura."""
 import uuid
 
 import pytest

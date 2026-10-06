@@ -48,7 +48,6 @@ async def main(url: str) -> int:
         tickets = await contar(conn, "select count(*) from admin.support_tickets") if esquema else None
         prototipo = await contar(conn, "select count(*) from pg_tables where schemaname = 'public' "
                                  "and tablename not in ('alembic_version')")
-        rol_grupo = await conn.fetchval("select count(*) from pg_roles where rolname = 'agecare_admin_api'")
         logins_api = await conn.fetch(
             "select r.rolname from pg_roles r join pg_auth_members m on m.member = r.oid "
             "join pg_roles g on g.oid = m.roleid where g.rolname = 'agecare_admin_api' and r.rolcanlogin")

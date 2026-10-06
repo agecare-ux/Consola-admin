@@ -1,4 +1,4 @@
-"""Consultas de apoyo sobre el staff (esquema canónico)."""
+"""Consultas de apoyo sobre el staff."""
 from sqlalchemy import select
 
 from app import models_canonico as M

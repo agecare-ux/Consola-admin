@@ -1,4 +1,4 @@
-"""Sección 6 (parte analítica) — Estadísticas por perfil (esquema canónico)."""
+"""Sección 6 (parte analítica) — Estadísticas por perfil."""
 from fastapi import APIRouter, Query, Request
 from sqlalchemy import select
 

@@ -1,4 +1,4 @@
-"""Sección 11 — Moderación (esquema canónico)."""
+"""Sección 11 — Moderación."""
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request

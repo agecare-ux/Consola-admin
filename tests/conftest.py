@@ -2,10 +2,10 @@
 
 Por qué PostgreSQL y no SQLite
 ------------------------------
-El modelo de datos canónico (AgeCare_Consola_Admin_Modelo_de_Datos_v1, sección 7)
-usa seguridad a nivel de fila, tablas particionadas, citext, text[] y triggers.
-Nada de eso existe en SQLite, así que los tests dejarían de poder validar el
-esquema real. Desde la fase 0 de la migración, la suite corre sobre PostgreSQL.
+El modelo de datos (AgeCare_Consola_Admin_Modelo_de_Datos_v1, sección 7) usa
+seguridad a nivel de fila, tablas particionadas, citext, text[] y triggers. Nada
+de eso existe en SQLite, así que la suite corre sobre PostgreSQL para validar el
+esquema real.
 
 Cómo indicar el servidor
 ------------------------

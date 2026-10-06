@@ -1,4 +1,4 @@
-"""Incidentes (5.5–5.6) sobre el esquema canónico: transiciones según el tipo."""
+"""Incidentes (5.5–5.6): transiciones según el tipo."""
 from datetime import datetime, timedelta, timezone
 
 import pytest

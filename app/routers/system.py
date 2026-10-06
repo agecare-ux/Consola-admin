@@ -1,4 +1,4 @@
-"""Secciones 12, 13 y 14 — Configuración, legales y auditoría (esquema canónico)."""
+"""Secciones 12, 13 y 14 — Configuración, legales y auditoría."""
 from datetime import date, datetime, timedelta
 from uuid import UUID
 

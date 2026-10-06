@@ -146,11 +146,10 @@ TODAY = date.today()
 NOW = datetime.now(timezone.utc)
 
 FEATURES = [
-    # Catálogo oficial del modelo de datos (admin.features y admin.feature_roles).
-    # El equipo decidió trabajar con estas diez; las cinco del wireframe que el modelo
-    # no recoge (centro de alertas, vitals, bitácora, chat y documentos médicos) se
-    # valorarán más adelante. Ojo: el modelo no solo quita funciones, también cambia
-    # nombres y a qué perfiles aplica cada una, así que ambas cosas vienen de él.
+    # Catálogo del modelo de datos (admin.features y admin.feature_roles): las diez
+    # funcionalidades, sus nombres y los perfiles a los que aplica cada una. Las cinco
+    # del wireframe que el modelo no incluye (centro de alertas, vitals, bitácora,
+    # chat y documentos médicos) quedan fuera del alcance actual.
     # key, nombre, roles aplicables, expected_low, nota, orden
     ("home_traffic_light", "Inicio / semáforo", ["caregiver", "family"], False,
      "La promesa central del producto.", 1),

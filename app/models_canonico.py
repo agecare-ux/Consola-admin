@@ -7,13 +7,10 @@ ARCHIVO GENERADO. No editar a mano: se regenera con
 a partir de la base creada por modelo/agecare_admin_ddl.sql, que es la fuente de
 verdad. Los modelos la reflejan, no al revés.
 
-Es el único modelo de la aplicación desde el cierre de la fase 3 (el del prototipo,
-app/models.py, se eliminó).
-
-Quince clases llevan el nombre que ya usa el código (AdminUser, Ticket, TicketReply,
-ContentItem, Product, CaregiverProfile, ModerationItem, SystemSetting, LegalVersion,
-Incident, Feature, ComponentState, LatencyWindow, CriticalProcessState, AdminSession)
-heredado del prototipo, para que la migración fuera sobre todo de columnas.
+Quince clases llevan un nombre propio en vez del derivado de la tabla (AdminUser,
+Ticket, TicketReply, ContentItem, Product, CaregiverProfile, ModerationItem,
+SystemSetting, LegalVersion, Incident, Feature, ComponentState, LatencyWindow,
+CriticalProcessState, AdminSession).
 
 Casi todas las tablas llevan tenant_id, y el esquema impone por trigger reglas de
 negocio (transiciones de estado, bloqueo optimista, inmutabilidad del registro de

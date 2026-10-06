@@ -1,8 +1,7 @@
-"""Comportamiento de la sección 3 que impone el modelo canónico (fase 3).
+"""Sección 3: reglas de cuentas y sesiones.
 
-Cubre lo que las suites anteriores no comprobaban: cuentas pendientes, bloqueo
-persistido, familias de sesiones, revocación con motivo, segundo factor y la
-trazabilidad en audit_log. Las comprobaciones de base se hacen como propietario,
+Cubre cuentas pendientes, bloqueo persistido, familias de sesiones, revocación con
+motivo, segundo factor y trazabilidad en audit_log. Las comprobaciones de base se hacen como propietario,
 que ve las tablas sin filtro de tenant.
 """
 import os

@@ -1,4 +1,4 @@
-"""Sección 10 — Catálogos del marketplace (esquema canónico)."""
+"""Sección 10 — Catálogos del marketplace."""
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request
@@ -52,8 +52,8 @@ async def list_caregivers(request: Request, db: Db,
     if zone:
         stmt = stmt.where(CP.zone.ilike(f"%{zone}%"))
     if specialty:
-        # specialties es text[]: se filtra en la base, antes de paginar, sin distinguir
-        # mayúsculas (el prototipo filtraba en memoria y el total no cuadraba).
+        # specialties es text[]: se filtra en la base, antes de paginar (para que el
+        # total sea correcto), sin distinguir mayúsculas.
         stmt = stmt.where(text("EXISTS (SELECT 1 FROM unnest(admin.marketplace_caregivers.specialties) s "
                                "WHERE lower(s) = lower(:especialidad))")
                           .bindparams(especialidad=specialty))

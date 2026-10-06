@@ -1,4 +1,4 @@
-"""Sección 9 — Curación de contenido (esquema canónico)."""
+"""Sección 9 — Curación de contenido."""
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response

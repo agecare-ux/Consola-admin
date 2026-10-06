@@ -1,8 +1,8 @@
 """Borra de una base las tablas del prototipo que quedaron en el esquema `public`.
 
-Desde el cierre de la fase 3 la API solo usa el esquema canónico `admin`; las 22
-tablas del prototipo (y la de versiones de Alembic de esa época) ya no sirven para
-nada. Este script las elimina.
+La API solo usa el esquema `admin`. Las bases creadas con la primera versión de la
+consola conservan en `public` las 22 tablas de entonces, que ya no se usan; este
+script las elimina.
 
     python -m scripts.retirar_prototipo             # solo muestra qué borraría
     python -m scripts.retirar_prototipo --confirmar # las borra

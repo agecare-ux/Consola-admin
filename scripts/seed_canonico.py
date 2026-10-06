@@ -22,9 +22,9 @@ Es idempotente: borra lo que siembra antes de volver a escribirlo.
 import asyncio
 import random
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 
-from sqlalchemy import delete, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -32,8 +32,8 @@ from app import models_canonico as M
 from app.config import get_settings
 from app.security import hash_password
 from scripts import datos_demo as D
-from scripts.datos_demo import (ACTIVE_30D, ADOPTION, FEATURES, MFA_SECRET_DEMO, NOW, PAID_PLANS,
-                                ROLE_ORDER, TODAY, mrr_for, split_by_role, split_paying)
+from scripts.datos_demo import (ADOPTION, FEATURES, MFA_SECRET_DEMO, NOW, ROLE_ORDER, TODAY,
+                                mrr_for, split_by_role, split_paying)
 
 TENANT = uuid.UUID(get_settings().tenant_id)
 FREE_CHURN = .029
@@ -140,9 +140,9 @@ async def seed() -> None:
                 created_by=admin.id, published_by=admin.id,
                 published_at=NOW - timedelta(days=95)))
 
-        # ---- Métricas diarias (misma simulación que el seed del prototipo) ----
-        # Base de usuarios que ya existía antes de la ventana simulada. Cuenta en el
-        # embudo: sin ella, "cuentas creadas" quedaba por debajo de "activos 30 días".
+        # ---- Métricas diarias ----
+        # Base de usuarios previa a la ventana simulada; se suma a las cuentas creadas
+        # del embudo para que sigan siendo más que los activos de 30 días.
         BASE_CUENTAS = 7400
         activos, pagan = float(BASE_CUENTAS), 300.0
         inicio = TODAY - timedelta(days=425)
@@ -287,8 +287,8 @@ async def seed() -> None:
         await db.flush()
 
         # ---- Tickets ----
-        # Los tickets del seed llevan número explícito, igual que el prototipo y el
-        # wireframe (#1482 el más reciente). Al final se ajusta el correlativo para
+        # Los tickets del seed llevan número explícito, como en el wireframe (#1482 el
+        # más reciente). Al final se ajusta el correlativo para
         # que los que cree la API sigan desde ahí (trg_ticket_number).
         # requester_user_id: los tickets de canal app los abre un usuario con cuenta;
         # se le da un id estable derivado del correo (referencia lógica a app.users).

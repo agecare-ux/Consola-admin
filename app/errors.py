@@ -48,7 +48,7 @@ def invalid(code: str, message: str, details: list | None = None) -> ApiError:
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # UUID completo: el modelo canónico lo guarda en audit_log.request_id (uuid).
+        # UUID completo: se guarda en audit_log.request_id (tipo uuid).
         request.state.request_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
         response = await call_next(request)
         response.headers["X-Request-Id"] = request.state.request_id
@@ -65,16 +65,16 @@ def _body(request: Request, code: str, message: str, details: list | None = None
 
 
 # ---------------------------------------------------------------------------
-# Traducción de errores del esquema canónico
+# Traducción de errores de la base de datos
 # ---------------------------------------------------------------------------
 # El modelo de datos impone por trigger las mismas reglas que la API valida en
 # Python, y lanza el código de la especificación al principio del mensaje. Sin
 # traducirlo, cualquiera de esas reglas saltando en la base devolvería un 500
 # genérico en vez del 409 documentado. Es el punto abierto 9.6 del modelo.
 #
-# Las validaciones de los routers siguen ahí: son las que dan el mensaje en
-# español y el detalle por campo. Esto es la red de seguridad para lo que se
-# escape, y la única defensa cuando algo escriba en la base fuera de la API.
+# Las validaciones de los routers dan el mensaje en español y el detalle por
+# campo; esta traducción es la red de seguridad para lo que no validen y para
+# escrituras que lleguen a la base por fuera de la API.
 CODIGOS_DEL_ESQUEMA: dict[str, tuple[int, str]] = {
     "LAST_ADMIN": (409, "No puedes dejar el sistema sin ninguna cuenta de administrador activa."),
     "INVALID_TRANSITION": (409, "Ese cambio de estado no está permitido desde el estado actual."),
@@ -138,10 +138,9 @@ _log = logging.getLogger("agecare.api")
 
 
 def _registrar(request: Request, exc: Exception) -> None:
-    """Deja la traza completa en los logs (Vercel: Runtime Logs) con su request_id.
+    """Registra la traza completa con su request_id (en Vercel: Runtime Logs).
 
-    El mensaje al usuario dice "revisa el request_id en los logs"; sin esto, en los
-    logs no había nada que revisar.
+    Permite localizar el error a partir del request_id que recibe el usuario.
     """
     _log.error("INTERNAL_ERROR request_id=%s %s %s",
                getattr(request.state, "request_id", "-"), request.method, request.url.path,

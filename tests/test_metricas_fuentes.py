@@ -1,4 +1,4 @@
-"""Métricas (secciones 4, 6 y 7) sobre el esquema canónico: lo que cambió en la fase 3.
+"""Métricas (secciones 4, 6 y 7): fuentes de datos, periodos y umbrales.
 
 Cada prueba contrasta la respuesta de la API con una consulta directa a la base,
 hecha como propietario (sin filtro de tenant), para no comprobar la API contra sí misma.

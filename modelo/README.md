@@ -80,8 +80,8 @@ La sección 7 del documento enumera las diferencias y la 8 propone seis migracio
   - [x] Configuración (2) · Legales (3) · Auditoría (1). Esquema y descripción de cada
         parámetro desde `setting_definitions`; la matriz de permisos por rol se lee de
         `admin_role_permissions` (ya no está duplicada en `enums.py`)
-- [ ] Fase 4 · Seed con tenants y catálogos
-- [ ] Fase 5 · Verificación contra las tres auditorías
+- [x] Fase 4 · Seed canónico (`scripts/seed_canonico.py`); los catálogos los trae el DDL
+- [x] Fase 5 · Verificación: pytest, `audit_spec` y `audit_roles` con la API conectada como `agecare_api`
 
 ### Cómo se regeneran los modelos
 
@@ -93,17 +93,15 @@ python -m scripts.aplicar_modelo --url "postgresql://postgres:postgres@127.0.0.1
 python -m scripts.generar_modelos
 ```
 
-Mapea las 58 tablas lógicas (no las particiones), declara una Base propia para no
-mezclarse con la del prototipo, y renombra quince clases a los nombres que ya usan
-los routers. Verificado contra la base: 58 tablas y 613 columnas, coincidencia exacta.
+Mapea las 58 tablas lógicas (no las particiones), declara su propia Base y renombra
+quince clases a los nombres que usan los routers. Verificado contra la base: 58 tablas y 613 columnas, coincidencia exacta.
 
-Mientras dure la transición conviven los dos esquemas: el prototipo en `public` y el
-canónico en `admin`. `alembic upgrade head` crea ambos. Al terminar la fase 3 se
-elimina la revisión 0001 y `public` queda vacío.
+`alembic upgrade head` (revisión 0002) aplica el DDL; `scripts/aplicar_modelo.py` hace
+lo mismo y además crea el rol de la API y prepara las particiones de auditoría.
 
-El criterio de que la migración no rompió nada son las suites que ya existen:
-23 tests, 19 comprobaciones de permisos y 80 de conformidad con la especificación.
-El contrato de la API no cambia, así que deben seguir dando lo mismo.
+El criterio de que la migración no rompió nada son las suites:
+46 tests, la matriz de permisos de los cinco roles y 96 comprobaciones de conformidad
+con la especificación.
 
 ## Divergencias detectadas y cómo se resolvieron
 
@@ -111,12 +109,12 @@ Comparación hecha aplicando el DDL sobre PostgreSQL 16 y contrastando sus catá
 con los valores del código. Coinciden al valor exacto: roles de staff (5), roles de la
 app (4), planes (4), categorías de ticket (6) y componentes de operación (9).
 
-| Divergencia | Quién se desviaba | Resolución |
+| Divergencia | Origen | Resolución |
 |---|---|---|
-| El backend permitía `open → resolved` y `waiting_user → resolved` | Nosotros | Corregido. Las transiciones son las seis de la sección 8.4, que coinciden con `ticket_status_transitions`. La consola web ofrece las mismas. |
-| El backend permitía `observing → investigating` en incidentes | Nosotros | Corregido. Cuatro transiciones, como en `incident_status_transitions`. |
-| `allowed_email_domains` y `feature_adoption_low_threshold` estaban fijos en el código | Nosotros | Sembrados como parámetros. Conectarlos al código es trabajo de la fase 3. |
-| La matriz daba al admin lectura sobre auditoría; el modelo da escritura | Nosotros | Alineado. No hay endpoint que escriba en el registro, pero la matriz queda literal para poder cargarla de `admin_role_permissions`. |
+| El backend permitía `open → resolved` y `waiting_user → resolved` | Backend | Corregido. Las transiciones son las seis de la sección 8.4, que coinciden con `ticket_status_transitions`. La consola web ofrece las mismas. |
+| El backend permitía `observing → investigating` en incidentes | Backend | Corregido. Cuatro transiciones, como en `incident_status_transitions`. |
+| `allowed_email_domains` y `feature_adoption_low_threshold` estaban fijos en el código | Backend | Sembrados como parámetros y leídos por la API desde `system_settings`. |
+| La matriz daba al admin lectura sobre auditoría; el modelo da escritura | Backend | Alineado. La API lee la matriz de `admin_role_permissions`. |
 
 ### Resuelto: el catálogo de funcionalidades
 
@@ -144,28 +142,22 @@ La causa es que el DDL activa la seguridad por fila pero no la fuerza
 (`FORCE ROW LEVEL SECURITY` no aparece), y en PostgreSQL el propietario de una tabla
 queda exento salvo que se fuerce.
 
-**Consecuencia para el despliegue:** en Neon la aplicación se conecta hoy como
-`neondb_owner`, que es quien creó las tablas. Si se deja así, las 45 políticas de
-aislamiento no protegerían nada. Antes de la fase 3 hay que crear un rol de login
-miembro de `agecare_admin_api` y apuntar `ADMIN_DATABASE_URL` a él:
+**Consecuencia para el despliegue:** si la aplicación se conecta como el propietario
+de las tablas (en Neon, `neondb_owner`), las 45 políticas de aislamiento no protegen
+nada. La API debe conectarse con un rol de login miembro de `agecare_admin_api`:
 
 ```sql
 CREATE ROLE agecare_api LOGIN PASSWORD '…' IN ROLE agecare_admin_api;
 ```
 
-Consultado al autor del modelo: responde que hagamos lo que menos moleste hasta la
-entrega al usuario final. Se opta por **crear el rol desde ya**, no por dejarlo para
-el final:
+El rol se crea con:
 
 ```bash
 python -m scripts.aplicar_modelo --rol-api "agecare_api:CLAVE"
 ```
 
-El motivo es que activar el aislamiento el último día convierte un problema pequeño
-y repartido en uno grande y concentrado. Con el rol puesto desde el principio, cada
-consulta que escribamos en la fase 3 se ejerce ya bajo las políticas y los fallos
-aparecen de uno en uno, cuando son baratos de arreglar. El coste de hacerlo ahora es
-una sentencia SQL y una variable de entorno.
+La suite de tests y las auditorías corren con un rol de este tipo, de modo que toda
+consulta de la API se ejerce bajo las políticas de aislamiento.
 
 Verificado: con el rol de la aplicación se ve un solo tenant; con el propietario, dos.
 

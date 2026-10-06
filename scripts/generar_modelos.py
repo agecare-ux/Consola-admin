@@ -11,8 +11,7 @@ Requiere sqlacodegen y psycopg2-binary, que están en requirements-dev.txt.
 
 Qué hace además de generar:
   - mapea solo las 58 tablas lógicas, dejando fuera las particiones;
-  - renombra quince clases a los nombres que ya usan los routers, para que la fase 3
-    sean cambios de columna y no de nombre;
+  - renombra quince clases a los nombres que usan los routers;
   - declara su propia Base declarativa.
 """
 import argparse
@@ -26,7 +25,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "app" / "models_canonico.py"
 POR_DEFECTO = "postgresql://postgres:postgres@127.0.0.1:5432/canonico"
 
-# Tabla canónica -> nombre de clase que ya usan los routers del prototipo.
+# Tabla -> nombre de clase que usan los routers.
 RENOMBRES = {
     "admin_sessions": "AdminSession",
     "admin_users": "AdminUser",
@@ -54,13 +53,10 @@ ARCHIVO GENERADO. No editar a mano: se regenera con
 a partir de la base creada por modelo/agecare_admin_ddl.sql, que es la fuente de
 verdad. Los modelos la reflejan, no al revés.
 
-Es el único modelo de la aplicación desde el cierre de la fase 3 (el del prototipo,
-app/models.py, se eliminó).
-
-Quince clases llevan el nombre que ya usa el código (AdminUser, Ticket, TicketReply,
-ContentItem, Product, CaregiverProfile, ModerationItem, SystemSetting, LegalVersion,
-Incident, Feature, ComponentState, LatencyWindow, CriticalProcessState, AdminSession)
-heredado del prototipo, para que la migración fuera sobre todo de columnas.
+Quince clases llevan un nombre propio en vez del derivado de la tabla (AdminUser,
+Ticket, TicketReply, ContentItem, Product, CaregiverProfile, ModerationItem,
+SystemSetting, LegalVersion, Incident, Feature, ComponentState, LatencyWindow,
+CriticalProcessState, AdminSession).
 
 Casi todas las tablas llevan tenant_id, y el esquema impone por trigger reglas de
 negocio (transiciones de estado, bloqueo optimista, inmutabilidad del registro de

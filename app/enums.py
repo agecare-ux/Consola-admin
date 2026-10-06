@@ -154,6 +154,5 @@ COMPONENT_NAMES = {
     ComponentKey.music_sync: "Sync Director Musical",
 }
 
-# Matriz de permisos por módulo (sección 2.3): módulo -> roles con acceso de lectura/escritura
 # La matriz de permisos por rol (spec 2.3) vive en admin.admin_role_permissions y la
 # lee app/deps.py en cada petición. scripts/audit_roles.py la contrasta con la spec.

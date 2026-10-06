@@ -1,4 +1,4 @@
-"""Contenido, marketplace y moderación (secciones 9–11) sobre el esquema canónico."""
+"""Contenido, marketplace y moderación (secciones 9–11)."""
 import pytest
 
 BASE = "/api/v1/admin"

@@ -132,7 +132,7 @@
   .g3{grid-template-columns:repeat(3,1fr)}
   @media(max-width:1100px){.g2,.g3{grid-template-columns:1fr}}
 
-  /* Filter row (selector de periodo) */
+  /* fila de filtros (selector de periodo) */
   .filter-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
   .filter-label{font-size:12px;color:var(--ink-soft);font-weight:600}
   .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line-strong);
@@ -142,7 +142,7 @@
   .seg button:hover{color:var(--ink)}
   .seg button.on{background:var(--brand);color:#fff}
 
-  /* KPI tiles */
+  /* tarjetas KPI */
   .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
   @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
@@ -154,7 +154,7 @@
   .kpi-delta.down{color:var(--crit)}
   .kpi-note{font-size:10.5px;color:var(--ink-faint);margin-top:4px}
 
-  /* status chips (icono + etiqueta, nunca solo color) */
+  /* insignias de estado (icono + etiqueta, nunca solo color) */
   .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
     border-radius:8px;padding:4px 9px}
   .chip.ok{color:#0a7a0a;background:var(--ok-bg)}
@@ -163,7 +163,7 @@
   .chip.crit{color:var(--crit);background:var(--crit-bg)}
   .chip.neutral{color:var(--ink-soft);background:#eef1f6}
 
-  /* tables */
+  /* tablas */
   table.data{width:100%;border-collapse:collapse;font-size:12.5px}
   table.data th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);
     font-weight:700;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
@@ -173,11 +173,11 @@
   .swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px}
   .linekey{display:inline-block;width:14px;height:0;border-top:3px solid;border-radius:2px;margin-right:7px;vertical-align:3px}
 
-  /* legend */
+  /* leyendas */
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);align-items:center}
   .legend .item{display:inline-flex;align-items:center;gap:6px}
 
-  /* charts */
+  /* gráficos */
   .chart-wrap{position:relative}
   .chart-wrap svg{display:block;width:100%;height:auto}
   #chart-funnel svg{max-width:760px}
@@ -194,7 +194,7 @@
   #tt .tt-row{display:flex;align-items:center;gap:7px;margin-top:3px}
   #tt .tt-v{font-weight:700;margin-left:auto;padding-left:14px;font-variant-numeric:tabular-nums}
 
-  /* heatmap */
+  /* mapa de calor */
   .heat{width:100%;border-collapse:separate;border-spacing:2px;font-size:12px}
   .heat th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);
     font-weight:700;padding:6px 8px;text-align:center}
@@ -205,7 +205,7 @@
   .heat td.na{background:#f0f2f6;color:var(--ink-faint);font-weight:500}
   .heat td:hover{outline:2px solid var(--ink);outline-offset:-2px}
 
-  /* misc */
+  /* varios */
   .flag-list li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);list-style:none}
   .flag-list li:last-child{border-bottom:none}
   .flag-list .fl-t{font-weight:600;font-size:12.5px}
@@ -305,7 +305,7 @@
   .composer textarea:focus{outline:2px solid var(--brand);outline-offset:-1px}
   .composer-row{display:flex;align-items:center;gap:14px;margin-top:10px}
   .check{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer}
-  /* modal de alta */
+  /* modales */
   .modal{position:fixed;inset:0;z-index:150;background:rgba(18,40,63,.45);
     display:flex;align-items:center;justify-content:center;padding:20px}
   .modal[hidden]{display:none}
@@ -1156,7 +1156,7 @@ async function api(path, {method = 'GET', body = null, retry = true} = {}) {
   const res = await fetch(API + path, opts);
 
   if (res.status === 401 && retry) {
-    // El access token dura 15 min; intentamos renovarlo una vez antes de rendirnos.
+    // El access token dura 15 min: se intenta renovar una vez antes de cerrar la sesión.
     if (await renewTokens()) return api(path, {method, body, retry: false});
     showGate('Tu sesión expiró. Vuelve a iniciar sesión.');
     throw new ApiError(401, 'UNAUTHORIZED', 'Sesión expirada');
@@ -2126,7 +2126,7 @@ async function abrirTicket(id) {
     });
     $('#d-desc').textContent = t.description;
 
-    // acciones: solo admin y soporte escriben (matriz 2.3); analista mira
+    // acciones: solo admin y soporte escriben (matriz 2.3); el analista solo lee
     $('#d-actions-card').hidden = !puedeEscribir;
     $('#d-composer').hidden = !puedeEscribir;
     if (puedeEscribir) {

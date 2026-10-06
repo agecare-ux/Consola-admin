@@ -57,11 +57,10 @@ class Settings(BaseSettings):
     # Negocio
     business_timezone: str = "America/Santiago"
 
-    # Multi-tenant. El modelo canónico aísla los datos por tenant con seguridad a
-    # nivel de fila, y la API tiene que declarar en cada transacción a quién sirve.
-    # Cómo se deduce el tenant en el login es un punto abierto de la especificación
-    # (sección 9.1 del modelo de datos): mientras el equipo decide si va por
-    # subdominio, se usa uno fijo. Cambiarlo será tocar una sola función.
+    # Multi-tenant. El modelo de datos aísla cada tenant con seguridad a nivel de
+    # fila, y la API declara en cada transacción a quién sirve. Cómo deducir el
+    # tenant en el login es un punto abierto (sección 9.1 del modelo de datos);
+    # mientras tanto se usa uno fijo, configurable.
     tenant_id: str = "00000000-0000-0000-0000-000000000001"
 
     @field_validator("database_url")

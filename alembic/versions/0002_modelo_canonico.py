@@ -14,10 +14,9 @@ adapta.
 El DDL es idempotente, así que esta migración se puede aplicar sobre una base que
 ya lo tenga sin romper nada.
 
-Es la primera revisión: la 0001, que creaba las tablas del prototipo en `public`,
-se eliminó al cerrar la fase 3 (la API ya no las usa). Las bases que la tenían
-aplicada siguen en la 0002 y no requieren nada; para borrar esas tablas está
-scripts/retirar_prototipo.py.
+Es la primera revisión. Las bases creadas con la versión inicial de la consola
+pueden conservar tablas antiguas en `public`; scripts/retirar_prototipo.py las
+elimina.
 """
 from pathlib import Path
 

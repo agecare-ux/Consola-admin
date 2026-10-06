@@ -26,8 +26,8 @@ def _engine_kwargs(url: str) -> dict:
        cualquier momento y dejar conexiones colgadas. NullPool abre y cierra
        por petición y deja el trabajo al pooler.
 
-    Contra un PostgreSQL directo (Docker en local) esto sigue funcionando; solo
-    se pierde el pool en memoria, irrelevante en desarrollo.
+    Contra un PostgreSQL directo (local o Docker) funciona igual; solo se pierde el
+    pool en memoria, irrelevante en desarrollo.
     """
     if url.startswith("postgresql+asyncpg://"):
         return {
@@ -59,17 +59,13 @@ async def fijar_contexto(session: AsyncSession, tenant_id: str | None = None,
                          actor_id: str | None = None) -> None:
     """Declara a quién sirve la transacción en curso.
 
-    El esquema canónico lee estas dos variables: `app.tenant_id` alimenta las 45
+    El esquema `admin` lee estas dos variables: `app.tenant_id` alimenta las 45
     políticas de aislamiento por fila, y `app.actor_id` permite a los triggers de
     historial saber quién hizo el cambio sin que la API tenga que pasarlo en cada
     sentencia.
 
     El tercer parámetro de set_config a true las hace locales a la transacción, de
     modo que no se filtran a la siguiente petición que reutilice la conexión.
-
-    Sobre el esquema del prototipo esto no hace nada: son variables que nadie lee.
-    Se deja puesto desde la fase 2 para que al cambiar de esquema en la fase 3 el
-    aislamiento ya funcione sin tocar los routers.
     """
     if tenant_id:
         await session.execute(text("SELECT set_config('app.tenant_id', :v, true)"),

@@ -1,4 +1,4 @@
-"""Configuración, legales, auditoría y matriz de permisos (cierre de la fase 3)."""
+"""Configuración, legales, auditoría y matriz de permisos (secciones 2.3 y 12–14)."""
 import os
 from datetime import date, timedelta
 

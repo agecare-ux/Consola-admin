@@ -1,4 +1,4 @@
-"""Escritura del registro de auditoría (sección 14) en el esquema canónico."""
+"""Escritura del registro de auditoría (sección 14)."""
 import ipaddress
 from uuid import UUID
 

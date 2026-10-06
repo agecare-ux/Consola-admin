@@ -1,4 +1,4 @@
-"""Sección 7 — Uso por funcionalidad (esquema canónico)."""
+"""Sección 7 — Uso por funcionalidad."""
 from datetime import datetime
 from uuid import UUID
 

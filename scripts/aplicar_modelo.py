@@ -70,7 +70,7 @@ def sin_metacomandos(sql: str) -> str:
 
     Los archivos traen \\set ON_ERROR_STOP, \\set QUIET y \\echo. Son instrucciones
     para el cliente psql, no SQL, y asyncpg las rechaza con un error de sintaxis.
-    Ninguna afecta al esquema: la parada ante el primer error ya la damos nosotros
+    Ninguna afecta al esquema; la parada ante el primer error la asegura este script
     al no capturar la excepción.
     """
     return "\n".join(l for l in sql.splitlines() if not l.lstrip().startswith("\\"))
@@ -152,14 +152,14 @@ async def crear_rol_api(conn: asyncpg.Connection, usuario: str, clave: str) -> N
     await conn.execute(f"GRANT agecare_admin_api TO {usuario}")
     await retirar_transicion(conn)
     print(f"  rol {usuario} listo (miembro de agecare_admin_api)")
-    print(f"  apunta ADMIN_DATABASE_URL a ese usuario para que el aislamiento actúe")
+    print("  apunta ADMIN_DATABASE_URL a ese usuario para que el aislamiento actúe")
 
 
 async def retirar_transicion(conn: asyncpg.Connection) -> None:
-    """Quita los permisos que la fase 3 dio a la API sobre el esquema del prototipo.
+    """Retira permisos de la API sobre `public` que pudieran quedar de versiones previas.
 
-    Desde el cierre de la fase 3 ningún router lee `public`: la API queda limitada al
-    esquema canónico. Es idempotente; en una base sin esos permisos no hace nada.
+    La API solo debe acceder al esquema `admin`. Es idempotente: en una base sin esos
+    permisos no hace nada.
     """
     await conn.execute(
         "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM agecare_admin_api;"

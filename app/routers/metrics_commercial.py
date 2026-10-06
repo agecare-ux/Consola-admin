@@ -1,4 +1,4 @@
-"""Sección 4 — Uso comercial (lectura de tablas agregadas, esquema canónico)."""
+"""Sección 4 — Uso comercial (lectura de tablas agregadas)."""
 from datetime import date, datetime, time, timedelta
 from uuid import UUID
 

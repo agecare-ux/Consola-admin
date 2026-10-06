@@ -1,4 +1,4 @@
-"""Sección 3 — Autenticación y gestión del staff (esquema canónico `admin`)."""
+"""Sección 3 — Autenticación y gestión del staff."""
 from datetime import timedelta
 from uuid import UUID, uuid4
 
@@ -43,8 +43,8 @@ async def _fallos_recientes(db, admin: M.AdminUser) -> int:
     """Contraseñas incorrectas de esta cuenta dentro de la ventana de bloqueo.
 
     Se cuentan desde el más reciente de: hace 10 minutos, el último login correcto
-    o el fin del último bloqueo. Así un bloqueo cumplido o un login exitoso dejan el
-    contador a cero, igual que hacía el prototipo, pero el dato está persistido.
+    o el fin del último bloqueo, de modo que un bloqueo cumplido o un login exitoso
+    reinician el conteo. Los intentos quedan persistidos (spec 3.1).
     """
     ultimo_ok = (await db.execute(
         select(func.max(M.AdminLoginAttempts.attempted_at))

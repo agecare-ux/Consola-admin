@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.enums import (AppRole, PlanCode, TicketCategory, TicketChannel, TicketPriority,
+from app.enums import (AppRole, TicketCategory, TicketChannel, TicketPriority,
                        TicketStatus)
 
 
