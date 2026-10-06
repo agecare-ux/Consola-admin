@@ -1,13 +1,10 @@
 """Comprueba que cada endpoint autoriza exactamente los roles que dice la especificación."""
 import asyncio, httpx
 from app.main import app
+from scripts.credenciales_demo import credenciales_login
 
 P = "/api/v1/admin"
-CUENTAS = {"admin": ("admin@wellq.co.uk", "Admin123!"),
-           "analyst": ("analista@wellq.co.uk", "Analista123!"),
-           "support": ("soporte@wellq.co.uk", "Soporte123!"),
-           "editor": ("editora@wellq.co.uk", "Editora123!"),
-           "moderator": ("moderador@wellq.co.uk", "Moderador123!")}
+ROLES = ["admin", "analyst", "support", "editor", "moderator"]
 
 # (método, ruta, roles autorizados según la spec, sección del documento)
 CASOS = [
@@ -38,16 +35,16 @@ CASOS = [
 async def main():
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         tokens = {}
-        for rol, (email, pw) in CUENTAS.items():
-            r = await c.post(f"{P}/auth/login", json={"email": email, "password": pw})
+        for rol in ROLES:
+            r = await c.post(f"{P}/auth/login", json=credenciales_login(rol))
             assert r.status_code == 200, f"{rol}: {r.text}"
             tokens[rol] = {"Authorization": "Bearer " + r.json()["access_token"]}
 
         fallos = 0
-        print(f"{'sec':<14} {'endpoint':<44} " + "  ".join(f"{r:<8}" for r in CUENTAS))
+        print(f"{'sec':<14} {'endpoint':<44} " + "  ".join(f"{r:<8}" for r in ROLES))
         for metodo, ruta, permitidos, sec in CASOS:
             fila, detalle = [], []
-            for rol in CUENTAS:
+            for rol in ROLES:
                 if metodo == "GET":
                     r = await c.get(P + ruta, headers=tokens[rol])
                 else:

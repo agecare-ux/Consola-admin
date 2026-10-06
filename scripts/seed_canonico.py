@@ -32,20 +32,13 @@ from app import models_canonico as M
 from app.config import get_settings
 from app.security import hash_password
 from scripts import datos_demo as D
-from scripts.datos_demo import (ADOPTION, FEATURES, MFA_SECRET_DEMO, NOW, ROLE_ORDER, TODAY,
-                                mrr_for, split_by_role, split_paying)
+from scripts.credenciales_demo import CUENTAS, ROLES_CON_MFA, cuenta, secreto_mfa
+from scripts.datos_demo import (ADOPTION, FEATURES, NOW, ROLE_ORDER, TODAY, mrr_for,
+                                split_by_role, split_paying)
 
 TENANT = uuid.UUID(get_settings().tenant_id)
 FREE_CHURN = .029
 
-STAFF = [
-    ("Max K.", "admin@wellq.co.uk", "admin", "Admin123!", False),
-    ("Sofía Rojas", "soporte@wellq.co.uk", "support", "Soporte123!", False),
-    ("Diego Paredes", "analista@wellq.co.uk", "analyst", "Analista123!", False),
-    ("Carla Núñez", "editora@wellq.co.uk", "editor", "Editora123!", False),
-    ("Ignacio Salas", "moderador@wellq.co.uk", "moderator", "Moderador123!", False),
-    ("Bryan Ávila", "admin.mfa@wellq.co.uk", "admin", "AdminMfa123!", True),
-]
 
 # Tablas que siembra este script, en orden inverso de dependencia para poder vaciarlas.
 A_VACIAR = ["audit_log", "support_csat_surveys", "support_ticket_replies", "support_tickets",
@@ -103,15 +96,17 @@ async def seed() -> None:
         await db.execute(text("SELECT set_config('app.tenant_id', :t, true)"), {"t": str(TENANT)})
 
         # ---- Staff ----
+        # Contraseñas y secreto TOTP vienen del entorno (scripts/credenciales_demo.py).
         staff = {}
-        for nombre, correo, rol, clave, con_mfa in STAFF:
+        for nombre, correo, rol, _ in CUENTAS:
+            con_mfa = rol in ROLES_CON_MFA
             u = M.AdminUser(tenant_id=TENANT, full_name=nombre, email=correo, role_code=rol,
-                            password_hash=hash_password(clave), is_active=True,
+                            password_hash=hash_password(cuenta(rol)[1]), is_active=True,
                             activated_at=NOW - timedelta(days=120),
-                            mfa_enabled=con_mfa,
-                            mfa_secret_enc=MFA_SECRET_DEMO.encode() if con_mfa else None)
+                            mfa_required=con_mfa, mfa_enabled=con_mfa,
+                            mfa_secret_enc=secreto_mfa().encode() if con_mfa else None)
             db.add(u)
-            staff[rol if rol != "admin" or correo.startswith("admin@") else correo] = u
+            staff[rol] = u
         await db.flush()
         admin = staff["admin"]
         soporte = staff["support"]
@@ -471,7 +466,7 @@ async def seed() -> None:
         total_tickets = len(tickets)
         await db.commit()
     await engine.dispose()
-    print(f"Esquema canónico sembrado: {len(STAFF)} cuentas de staff, "
+    print(f"Esquema canónico sembrado: {len(CUENTAS)} cuentas de staff, "
           f"{total_tickets} tickets, {len(FEATURES)} funcionalidades, métricas de 14 meses.")
 
 

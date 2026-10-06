@@ -33,18 +33,31 @@ python -m scripts.verificar_base      # comprueba que la base quedó lista
 uvicorn app.main:app --reload         # la API, conectada como agecare_api
 ```
 
-## Credenciales demo (seed)
+## Cuentas demo
 
-| Correo | Contraseña | Rol |
-|---|---|---|
-| admin@wellq.co.uk | Admin123! | admin |
-| soporte@wellq.co.uk | Soporte123! | soporte |
-| analista@wellq.co.uk | Analista123! | analista |
-| editora@wellq.co.uk | Editora123! | editor |
-| moderador@wellq.co.uk | Moderador123! | moderador |
-| admin.mfa@wellq.co.uk | AdminMfa123! | admin con segundo factor (TOTP) |
+El seed crea una cuenta por rol de staff (sección 2.3 de la especificación):
 
-Solo la cuenta `admin.mfa` pide código TOTP, para poder probar ese flujo.
+| Correo | Rol |
+|---|---|
+| admin@wellq.co.uk | admin (con segundo factor TOTP) |
+| soporte@wellq.co.uk | soporte |
+| analista@wellq.co.uk | analista |
+| editora@wellq.co.uk | editor |
+| moderador@wellq.co.uk | moderador |
+
+Las contraseñas y el secreto TOTP **no están en el repositorio**: el seed y las
+auditorías los leen de las variables `DEMO_*` (ver `.env.example`). Para generar un
+juego nuevo y copiarlo al `.env`:
+
+```bash
+python -m scripts.credenciales_demo --generar
+```
+
+Quien reciba acceso para pruebas obtiene las contraseñas y el secreto por un canal
+seguro. El rol admin exige segundo factor: el código de 6 dígitos se obtiene en una
+app de autenticación (Google Authenticator, Microsoft Authenticator…) configurada con
+`DEMO_MFA_SECRET`. Una cuenta admin sin TOTP configurado no puede iniciar sesión
+(`403 MFA_NOT_CONFIGURED`).
 
 ## Probar con curl
 
@@ -53,7 +66,7 @@ BASE=http://localhost:8000/api/v1/admin
 
 # Login
 TOKEN=$(curl -s $BASE/auth/login -H 'Content-Type: application/json' \
-  -d '{"email":"admin@wellq.co.uk","password":"Admin123!"}' | python3 -c \
+  -d '{"email":"analista@wellq.co.uk","password":"<clave>"}' | python3 -c \
   'import sys,json;print(json.load(sys.stdin)["access_token"])')
 AUTH="Authorization: Bearer $TOKEN"
 
@@ -82,7 +95,7 @@ curl -s "$BASE/metrics/features/alerts?threshold=0.15" -H "$AUTH"
 ## Tests
 
 ```bash
-pytest                          # 46 pruebas
+pytest                          # 47 pruebas
 python -m scripts.audit_spec    # conformidad con la especificación (96 comprobaciones)
 python -m scripts.audit_roles   # matriz de permisos por rol
 ```
@@ -114,6 +127,7 @@ alembic/           Revisión 0002: aplica el DDL canónico
 scripts/
   aplicar_modelo.py     DDL, rol de la API y particiones de auditoría
   seed_canonico.py      Datos demo coherentes con el wireframe
+  credenciales_demo.py  Cuentas demo; contraseñas y TOTP leídos del entorno
   verificar_base.py     Diagnóstico de una base (solo lectura)
   retirar_prototipo.py  Borra las tablas del prototipo que queden en public
   audit_spec.py, audit_roles.py   Auditorías contra la especificación

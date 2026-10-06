@@ -47,9 +47,16 @@ URL_API = f"postgresql+asyncpg://{ROL_API}:{CLAVE_API}@{_host}/{BD_TEST}"
 # La app lee la configuración al importarse, así que hay que fijarla antes.
 os.environ["ADMIN_DATABASE_URL"] = URL_TEST
 os.environ["ADMIN_JWT_SECRET"] = "secreto-de-test-suficientemente-largo-123456"
+# Credenciales de las cuentas demo solo para la base efímera de la suite.
+for _variable, _valor in {"DEMO_CLAVE_ADMIN": "Test-Admin-1", "DEMO_CLAVE_SOPORTE": "Test-Soporte-1",
+                          "DEMO_CLAVE_ANALISTA": "Test-Analista-1", "DEMO_CLAVE_EDITORA": "Test-Editora-1",
+                          "DEMO_CLAVE_MODERADOR": "Test-Moderador-1",
+                          "DEMO_MFA_SECRET": "KRSXG5CTMVRXEZLUKRSXG5CTMVRXEZLU"}.items():
+    os.environ[_variable] = _valor
 
 import app.database as database  # noqa: E402
 from app.main import app as fastapi_app  # noqa: E402
+from scripts.credenciales_demo import credenciales_login  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -116,15 +123,13 @@ async def client(seeded):
 
 @pytest_asyncio.fixture
 async def admin_headers(client):
-    r = await client.post("/api/v1/admin/auth/login",
-                          json={"email": "admin@wellq.co.uk", "password": "Admin123!"})
+    r = await client.post("/api/v1/admin/auth/login", json=credenciales_login("admin"))
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 @pytest_asyncio.fixture
 async def analyst_headers(client):
-    r = await client.post("/api/v1/admin/auth/login",
-                          json={"email": "analista@wellq.co.uk", "password": "Analista123!"})
+    r = await client.post("/api/v1/admin/auth/login", json=credenciales_login("analyst"))
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}

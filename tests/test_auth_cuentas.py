@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
-from scripts.datos_demo import MFA_SECRET_DEMO
+from scripts.credenciales_demo import cuenta, secreto_mfa
 
 BASE = "/api/v1/admin"
 pytestmark = pytest.mark.asyncio
@@ -22,8 +22,9 @@ pytestmark = pytest.mark.asyncio
 async def _sql(consulta: str, **params):
     eng = create_async_engine(os.environ["ADMIN_DATABASE_URL"], poolclass=NullPool)
     try:
-        async with eng.connect() as conn:
-            return (await conn.execute(text(consulta), params)).all()
+        async with eng.begin() as conn:
+            res = await conn.execute(text(consulta), params)
+            return res.all() if res.returns_rows else []
     finally:
         await eng.dispose()
 
@@ -65,11 +66,11 @@ async def test_dominio_validado_contra_parametro_de_la_base(client, admin_header
 
 
 async def test_bloqueo_tras_cinco_fallos_persistido(client):
-    email = "moderador@wellq.co.uk"
+    email, clave = cuenta("moderator")
     for _ in range(5):
         r = await _login(client, email, "MalaClave1!")
         assert r.json()["error"]["code"] == "INVALID_CREDENTIALS"
-    r = await _login(client, email, "Moderador123!")  # incluso con la clave correcta
+    r = await _login(client, email, clave)  # incluso con la clave correcta
     assert r.status_code == 423
     assert r.json()["error"]["code"] == "ACCOUNT_LOCKED"
 
@@ -80,8 +81,8 @@ async def test_bloqueo_tras_cinco_fallos_persistido(client):
 
 
 async def test_rotacion_mantiene_familia_y_reuso_revoca_todo(client):
-    l1 = (await _login(client, "editora@wellq.co.uk", "Editora123!")).json()
-    l2 = (await _login(client, "editora@wellq.co.uk", "Editora123!")).json()  # otra sesión
+    l1 = (await _login(client, *cuenta("editor"))).json()
+    l2 = (await _login(client, *cuenta("editor"))).json()  # otra sesión
     r = await client.post(f"{BASE}/auth/refresh", json={"refresh_token": l1["refresh_token"]})
     assert r.status_code == 200
 
@@ -104,17 +105,28 @@ async def test_rotacion_mantiene_familia_y_reuso_revoca_todo(client):
 
 
 async def test_segundo_factor(client):
-    email, clave = "admin.mfa@wellq.co.uk", "AdminMfa123!"
+    email, clave = cuenta("admin")
     r = await _login(client, email, clave)
     assert r.json()["error"]["code"] == "OTP_REQUIRED"
     r = await _login(client, email, clave, otp="000000")
     assert r.json()["error"]["code"] == "OTP_INVALID"
-    r = await _login(client, email, clave, otp=pyotp.TOTP(MFA_SECRET_DEMO).now())
+    r = await _login(client, email, clave, otp=pyotp.TOTP(secreto_mfa()).now())
     assert r.status_code == 200, r.text
 
 
+async def test_admin_sin_segundo_factor_no_entra(client):
+    email, clave = cuenta("admin")
+    await _sql("update admin.admin_users set mfa_enabled = false where email = :e", e=email)
+    try:
+        r = await _login(client, email, clave)
+        assert r.status_code == 403, r.text
+        assert r.json()["error"]["code"] == "MFA_NOT_CONFIGURED"
+    finally:
+        await _sql("update admin.admin_users set mfa_enabled = true where email = :e", e=email)
+
+
 async def test_desactivar_revoca_sesiones_con_motivo_y_audita(client, admin_headers):
-    r = await _login(client, "soporte@wellq.co.uk", "Soporte123!")
+    r = await _login(client, *cuenta("support"))
     assert r.status_code == 200
     soporte_id = r.json()["admin"]["id"]
     r = await client.patch(f"{BASE}/users/{soporte_id}", headers=admin_headers,

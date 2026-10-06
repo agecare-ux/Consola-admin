@@ -20,6 +20,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Las contraseñas de las cuentas demo y el secreto TOTP (DEMO_*) se leen de .env;
+    # se generan con: python -m scripts.credenciales_demo --generar
+    env_file: .env
     environment:
       ADMIN_DATABASE_URL: postgresql+asyncpg://agecare:agecare@db:5432/agecare_admin
       ADMIN_JWT_SECRET: solo-para-desarrollo

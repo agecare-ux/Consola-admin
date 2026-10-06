@@ -186,9 +186,6 @@ ADOPTION = {
 ACTIVE_30D = {"family": 5310, "caregiver": 1470, "elder": 2640, "doctor": 420}
 ROLE_ORDER = ["family", "caregiver", "elder", "doctor"]
 
-# Secreto TOTP fijo de la cuenta de demostración con segundo factor.
-MFA_SECRET_DEMO = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
-
 # --- Coherencia de cifras -----------------------------------------------------
 # Las cifras del wireframe se tratan como una MEZCLA (proporciones), no como
 # totales absolutos. El seed las escala al cierre de la simulación diaria para que

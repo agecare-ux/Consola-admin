@@ -1,5 +1,7 @@
 import pytest
 
+from scripts.credenciales_demo import credenciales_login
+
 BASE = "/api/v1/admin"
 
 pytestmark = pytest.mark.asyncio
@@ -7,7 +9,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_login_ok(client):
     r = await client.post(f"{BASE}/auth/login",
-                          json={"email": "admin@wellq.co.uk", "password": "Admin123!"})
+                          json=credenciales_login("admin"))
     assert r.status_code == 200
     data = r.json()
     assert data["admin"]["role"] == "admin"
@@ -39,7 +41,7 @@ async def test_me_and_permissions(client, admin_headers, analyst_headers):
 
 async def test_refresh_rotation(client):
     login = (await client.post(f"{BASE}/auth/login",
-                               json={"email": "admin@wellq.co.uk", "password": "Admin123!"})).json()
+                               json=credenciales_login("admin"))).json()
     r1 = await client.post(f"{BASE}/auth/refresh", json={"refresh_token": login["refresh_token"]})
     assert r1.status_code == 200
     # reutilizar el token rotado debe fallar

@@ -22,6 +22,7 @@ router = APIRouter(tags=["Autenticación de staff"])
 
 VENTANA_FALLOS = timedelta(minutes=10)  # spec 3.1: 5 fallos en 10 minutos
 INVITACION_HORAS = 24                   # spec 3.5: enlace de un solo uso, 24 h
+ROLES_CON_MFA = {AdminRole.admin.value}  # spec 3.1: el rol admin exige TOTP
 MSG_REFRESH = "La sesión no es válida o fue revocada. Inicia sesión de nuevo."
 
 
@@ -101,8 +102,9 @@ async def login(body: LoginIn, request: Request, db: Db):
             admin_id=admin.id if admin else None,
             ip=ip_de(request), user_agent=user_agent_de(request)))
 
-    async def fallar(codigo: str, mensaje: str, http: int):
-        registrar_intento(False, codigo)
+    async def fallar(codigo: str, mensaje: str, http: int, codigo_registro: str | None = None):
+        # admin_login_attempts solo admite los códigos de la spec 3.1 (CHECK del modelo).
+        registrar_intento(False, codigo_registro or codigo)
         await audit(db, request, "auth.login_failed", "admin_user",
                     admin.id if admin else None, actor=admin, after={"reason": codigo})
         await db.commit()  # el intento y la auditoría persisten aunque se responda error
@@ -125,6 +127,13 @@ async def login(body: LoginIn, request: Request, db: Db):
         else:
             admin.failed_attempts = fallos
         await fallar("INVALID_CREDENTIALS", "Correo o contraseña incorrectos.", 401)
+    if admin.role_code in ROLES_CON_MFA and not admin.mfa_enabled:
+        # Sin flujo de enrolamiento en la consola, una cuenta admin sin TOTP no puede
+        # cumplir la exigencia: se rechaza en vez de dejarla entrar solo con contraseña.
+        await fallar("MFA_NOT_CONFIGURED",
+                     "Las cuentas de administración requieren segundo factor y esta aún no "
+                     "lo tiene configurado. Contacta a otro administrador.", 403,
+                     codigo_registro="ADMIN_DISABLED")
     if admin.mfa_enabled:
         if not body.otp_code:
             await fallar("OTP_REQUIRED", "Esta cuenta exige segundo factor. Envía tu código TOTP.", 401)

@@ -100,7 +100,7 @@ quince clases a los nombres que usan los routers. Verificado contra la base: 58 
 lo mismo y además crea el rol de la API y prepara las particiones de auditoría.
 
 El criterio de que la migración no rompió nada son las suites:
-46 tests, la matriz de permisos de los cinco roles y 96 comprobaciones de conformidad
+47 tests, la matriz de permisos de los cinco roles y 96 comprobaciones de conformidad
 con la especificación.
 
 ## Divergencias detectadas y cómo se resolvieron

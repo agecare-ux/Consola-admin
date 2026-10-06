@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import httpx
 from app.main import app
+from scripts.credenciales_demo import credenciales_login
 
 P = "/api/v1/admin"
 resultados = []
@@ -30,7 +31,7 @@ async def main():
                 b["otp_code"] = otp
             return await c.post(f"{P}/auth/login", json=b)
 
-        r = await login("admin@wellq.co.uk", "Admin123!")
+        r = await c.post(f"{P}/auth/login", json=credenciales_login("admin"))
         tok = r.json()
         H = {"Authorization": "Bearer " + tok["access_token"]}
 
@@ -60,7 +61,7 @@ async def main():
               await c.post(f"{P}/auth/refresh", json={"refresh_token": "inventado"}))
 
         # ---------- 3.3 logout 204 ----------
-        r2 = await login("admin@wellq.co.uk", "Admin123!")
+        r2 = await c.post(f"{P}/auth/login", json=credenciales_login("admin"))
         t2 = r2.json()
         check("3.3", "logout -> 204 sin cuerpo", 204, None,
               await c.post(f"{P}/auth/logout", headers={"Authorization": "Bearer " + t2["access_token"]},
