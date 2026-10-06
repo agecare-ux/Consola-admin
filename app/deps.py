@@ -4,6 +4,7 @@ from uuid import UUID
 
 import jwt
 from fastapi import Depends, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,13 +14,20 @@ from app.errors import forbidden, unauthorized
 from app.security import decode_access_token
 
 
+# Declara el esquema Bearer en OpenAPI (botón «Authorize» de /docs). auto_error=False
+# para que la ausencia o el formato incorrecto del token respondan con el error
+# estándar de la API (401 UNAUTHENTICATED) y no con el de FastAPI.
+_bearer = HTTPBearer(auto_error=False, description="Access token de POST /auth/login")
+
+
 async def get_current_admin(request: Request,
-                            db: Annotated[AsyncSession, Depends(get_db)]) -> M.AdminUser:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+                            db: Annotated[AsyncSession, Depends(get_db)],
+                            cred: Annotated[HTTPAuthorizationCredentials | None,
+                                            Depends(_bearer)] = None) -> M.AdminUser:
+    if cred is None or cred.scheme.lower() != "bearer":
         raise unauthorized()
     try:
-        payload = decode_access_token(auth.removeprefix("Bearer ").strip())
+        payload = decode_access_token(cred.credentials.strip())
         admin_id = UUID(payload["sub"])
     except (jwt.PyJWTError, ValueError):
         raise unauthorized()
